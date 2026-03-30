@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Paramètres — Coach{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Paramètres coach</h1>
+<div class="card p-4">
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-6 mb-3">{{ form.default_hourly_rate.label(class="form-label") }}{{ form.default_hourly_rate(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.min_days_between_sessions.label(class="form-label") }}{{ form.min_days_between_sessions(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.timezone.label(class="form-label") }}{{ form.timezone(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.cancellation_hours.label(class="form-label") }}{{ form.cancellation_hours(class="form-control") }}</div>
+      <div class="col-12 mb-3"><div class="form-check">{{ form.email_notifications(class="form-check-input") }}{{ form.email_notifications.label(class="form-check-label") }}</div></div>
+      <hr>
+      <div class="col-md-4 mb-3">{{ form.tax_rate_percent.label(class="form-label") }}{{ form.tax_rate_percent(class="form-control") }}</div>
+      <div class="col-md-4 mb-3">{{ form.social_charges_percent.label(class="form-label") }}{{ form.social_charges_percent(class="form-control") }}</div>
+      <div class="col-md-4 mb-3">{{ form.fixed_costs_monthly.label(class="form-label") }}{{ form.fixed_costs_monthly(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.target_net_salary_monthly.label(class="form-label") }}{{ form.target_net_salary_monthly(class="form-control") }}</div>
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+</div>
+{% endblock %}

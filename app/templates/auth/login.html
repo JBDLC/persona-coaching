@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Connexion — Persona{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card p-4">
+      <h1 class="h4 mb-3">Connexion</h1>
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">{{ form.identifier.label(class="form-label") }}{{ form.identifier(class="form-control") }}</div>
+        <div class="mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control") }}</div>
+        {{ form.submit(class="btn btn-primary") }}
+      </form>
+      <p class="mt-3 small text-muted mb-0">La création de comptes coach est réservée à l'administrateur.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

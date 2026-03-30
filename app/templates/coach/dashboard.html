@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Coach{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Tableau de bord</h1>
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card p-3">
+      <div class="text-muted small">Patients actifs</div>
+      <div class="fs-3 fw-bold">{{ patients_count }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3">
+      <div class="text-muted small">CA séances planifiées (futures)</div>
+      <div class="fs-3 fw-bold">{{ scheduled_revenue }} €</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3">
+      <div class="text-muted small">CA pipeline (séances restantes × tarif)</div>
+      <div class="fs-3 fw-bold">{{ pipeline_revenue }} €</div>
+    </div>
+  </div>
+</div>
+{% if forecast %}
+<div class="card p-4 mb-4">
+  <h2 class="h5">Prévisions (indicatif)</h2>
+  <ul class="mb-0">
+    <li>Net estimé à partir du calendrier (après impôts/charges et coûts fixes) : <strong>{{ forecast.net_estimated_from_scheduled }} €</strong></li>
+    <li>Net estimé à partir du pipeline clients : <strong>{{ forecast.net_estimated_from_pipeline }} €</strong></li>
+    <li>Objectif salaire net mensuel : <strong>{{ forecast.target_net_salary }} €</strong></li>
+    <li>Taux impôts : {{ forecast.tax_rate }} % · Charges sociales : {{ forecast.social_rate }} % · Coûts fixes : {{ forecast.fixed_costs }} € / mois</li>
+  </ul>
+</div>
+{% endif %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h2 class="h5 mb-0">Prochains rendez-vous</h2>
+  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.export_patients_csv') }}">Export CSV patients</a>
+</div>
+<div class="table-responsive">
+  <table class="table table-sm bg-white">
+    <thead><tr><th>Date</th><th>Patient</th><th>Statut</th></tr></thead>
+    <tbody>
+      {% for s in upcoming %}
+      <tr>
+        <td>{{ s.start_utc|local_dt(coach_tz) }}</td>
+        <td>{% if s.patient %}{{ s.patient.display_name() }}{% else %}—{% endif %}</td>
+        <td>{{ s.status }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="text-muted">Aucun rendez-vous à venir.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

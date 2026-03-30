@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Réserver{% endblock %}
+{% block content %}
+<h1 class="h3 mb-2">Réserver un créneau</h1>
+<p class="text-muted">Délai minimum entre deux séances : <strong>{{ min_days }}</strong> jour(s). Les créneaux listés respectent déjà cette règle.</p>
+{% if last_session_end %}
+<p class="small">Dernière séance (fin) : {{ last_session_end|local_dt(coach_tz) }}</p>
+{% endif %}
+<div class="row g-3">
+  {% for s in slots %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card p-3 h-100">
+      <div class="fw-semibold">{{ s.start_utc|local_dt(coach_tz) }}</div>
+      <div class="small text-muted">→ {{ s.end_utc|local_dt(coach_tz) }}</div>
+      <form method="post" class="mt-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="slot_id" value="{{ s.id }}"/>
+        <button type="submit" class="btn btn-sm btn-primary">Réserver</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted">Aucun créneau disponible pour le moment (ou délai minimum non respecté).</p>
+  {% endfor %}
+</div>
+{% endblock %}

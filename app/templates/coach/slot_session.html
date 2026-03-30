@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Séance — {{ patient.display_name() }}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-2">Séance — {{ patient.display_name() }}</h1>
+<p class="text-muted">{{ slot.start_utc|local_dt(coach_tz) }} → {{ slot.end_utc|local_dt(coach_tz) }}</p>
+<div class="card p-4">
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">{{ form.notes.label(class="form-label") }}{{ form.notes(class="form-control", rows=8) }}</div>
+    <div class="row">
+      <div class="col-md-4 mb-3"><div class="form-check">{{ form.paid(class="form-check-input") }}{{ form.paid.label(class="form-check-label") }}</div></div>
+      <div class="col-md-4 mb-3"><div class="form-check">{{ form.mark_completed(class="form-check-input") }}{{ form.mark_completed.label(class="form-check-label") }}</div></div>
+      <div class="col-md-4 mb-3">{{ form.invoice_number.label(class="form-label") }}{{ form.invoice_number(class="form-control") }}</div>
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+    <a class="btn btn-outline-secondary ms-2" href="{{ url_for('coach.slot_invoice_pdf', sid=slot.id) }}">Télécharger facture PDF</a>
+    <a class="btn btn-outline-secondary ms-2" href="{{ url_for('coach.patient_detail', pid=patient.id) }}">Retour fiche</a>
+  </form>
+</div>
+{% endblock %}

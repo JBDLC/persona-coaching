@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Aide{% endblock %}
+{% block content %}
+<h1>Aide</h1>
+<ul>
+  <li><strong>Coach</strong> : créez des créneaux dans « Planning », puis vos patients réservent. Rédigez le compte rendu après chaque séance.</li>
+  <li><strong>Patient</strong> : « Réserver » pour choisir un créneau libre ; le délai minimum entre deux rendez-vous est défini par le coach.</li>
+  <li><strong>Annulation</strong> : respectez le délai minimum (heures) indiqué par le coach dans les paramètres.</li>
+  <li><strong>Emails</strong> : configurez SMTP dans les variables d’environnement pour activer les notifications.</li>
+</ul>
+<p><a href="{{ url_for('main.index') }}">Retour</a></p>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Administration — Persona{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card p-4">
+      <h1 class="h4 mb-2">Administration</h1>
+      <p class="text-muted mb-4">Ce compte peut uniquement créer des coachs. Aucun accès aux fiches coach/patient.</p>
+      <h2 class="h5 mb-3">Coachs créés</h2>
+      <div class="table-responsive mb-4">
+        <table class="table table-sm bg-white">
+          <thead>
+            <tr>
+              <th>Coach</th>
+              <th>Statut</th>
+              <th>Nombre de patients</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for coach in coaches %}
+            <tr>
+              <td>{{ coach.name }}</td>
+              <td>
+                {% if coach.is_suspended %}
+                <span class="badge text-bg-warning">Suspendu</span>
+                {% else %}
+                <span class="badge text-bg-success">Actif</span>
+                {% endif %}
+              </td>
+              <td>{{ coach.patients_count }}</td>
+              <td class="text-end">
+                <form method="post" action="{{ url_for('admin.toggle_suspension', coach_id=coach.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if coach.is_suspended %}
+                  <button type="submit" class="btn btn-sm btn-outline-success">Réactiver</button>
+                  {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-warning">Suspendre</button>
+                  {% endif %}
+                </form>
+                <form method="post" action="{{ url_for('admin.delete_coach', coach_id=coach.id) }}" class="d-inline" onsubmit="return confirm('Supprimer définitivement ce coach et tous ses clients ?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-muted">Aucun coach créé.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <h2 class="h5 mb-3">Créer un compte coach</h2>
+      <form method="post" action="{{ url_for('admin.create_coach') }}">
+        {{ form.hidden_tag() }}
+        <div class="row">
+          <div class="col-md-6 mb-3">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control") }}</div>
+          <div class="col-md-6 mb-3">{{ form.email.label(class="form-label") }}{{ form.email(class="form-control") }}</div>
+          <div class="col-md-6 mb-3">{{ form.password.label(class="form-label") }}{{ form.password(class="form-control") }}</div>
+        </div>
+        {{ form.submit(class="btn btn-primary") }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

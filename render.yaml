@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: persona-app
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    healthCheckPath: /auth/login
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: persona-db
+          property: connectionString
+      - key: SESSION_DAYS
+        value: 7
+      - key: ADMIN_USERNAME
+        value: adminpersona
+      - key: ADMIN_EMAIL
+        value: adminpersona@persona.local
+      - key: ADMIN_PASSWORD
+        sync: false
+    autoDeploy: true
+    preDeployCommand: python init_app.py
+
+databases:
+  - name: persona-db
+    plan: free

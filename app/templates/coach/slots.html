@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Planning — Coach{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Planning</h1>
+<p class="text-muted">Fuseau : {{ tz }} — Les dates saisies sont interprétées dans ce fuseau.</p>
+<div class="card p-4 mb-4">
+  <h2 class="h5">Ajouter un créneau libre</h2>
+  <form method="post" class="row g-3">
+    {{ form.hidden_tag() }}
+    <div class="col-md-5">{{ form.start_local.label(class="form-label") }}{{ form.start_local(class="form-control", type="datetime-local") }}</div>
+    <div class="col-md-5">{{ form.end_local.label(class="form-label") }}{{ form.end_local(class="form-control", type="datetime-local") }}</div>
+    <div class="col-md-2 d-flex align-items-end">{{ form.submit(class="btn btn-primary w-100") }}</div>
+  </form>
+</div>
+<div class="table-responsive">
+  <table class="table table-sm bg-white">
+    <thead><tr><th>Début</th><th>Fin</th><th>Patient</th><th>Statut</th><th></th></tr></thead>
+    <tbody>
+      {% for s in slots %}
+      <tr>
+        <td>{{ s.start_utc|local_dt(coach_tz) }}</td>
+        <td>{{ s.end_utc|local_dt(coach_tz) }}</td>
+        <td>{% if s.patient %}{{ s.patient.display_name() }}{% else %}—{% endif %}</td>
+        <td>{{ s.status }}</td>
+        <td>
+          {% if s.status == 'available' %}
+          <form method="post" action="{{ url_for('coach.slot_delete', sid=s.id) }}" class="d-inline" onsubmit="return confirm('Supprimer ce créneau ?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
+          </form>
+          {% elif s.status != 'available' %}
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.slot_session', sid=s.id) }}">Séance</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted">Aucun créneau.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

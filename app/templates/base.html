@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Persona{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-coachdesk.png') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+  <nav class="navbar navbar-expand-lg topbar sticky-top">
+    <div class="container-fluid app-container">
+      <a class="navbar-brand brand" href="{{ url_for('main.index') }}">
+        <span class="brand-logo-wrap">
+          <img src="{{ url_for('static', filename='img/logo-coachdesk.png') }}" alt="Logo Persona" class="brand-logo" onerror="this.onerror=null;if(!this.dataset.fallback){this.dataset.fallback='jpg';this.src='{{ url_for('static', filename='img/logo-coachdesk.jpg') }}';}else{this.src='{{ url_for('static', filename='img/logo-coachdesk.svg') }}';}">
+        </span>
+        <span class="brand-text">
+          <span class="brand-title">Persona</span>
+          <span class="brand-subtitle">Coaching & suivi patient</span>
+        </span>
+      </a>
+      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="nav">
+        <ul class="navbar-nav me-auto nav-pills-soft">
+          {% if current_user.is_authenticated and current_user.is_admin() %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.dashboard') }}">Administration</a></li>
+          {% elif current_user.is_authenticated and current_user.is_coach() %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.dashboard') }}">Tableau de bord</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.patients_list') }}">Patients</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.slots') }}">Planning</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.settings') }}">Paramètres</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.audit') }}">Journal</a></li>
+          {% elif current_user.is_authenticated and current_user.is_patient() %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.dashboard') }}">Accueil</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.sessions') }}">Mes séances</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.book') }}">Réserver</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.contract') }}">Contrat</a></li>
+          {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Connexion</a></li>
+          {% endif %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.help_page') }}">Aide</a></li>
+        </ul>
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          {% if current_user.is_authenticated %}
+          <li class="nav-item me-lg-2"><span class="user-chip">{{ current_user.name }}</span></li>
+          <li class="nav-item"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('auth.logout') }}">Déconnexion</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    <div class="container-fluid app-container py-4 py-md-5">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show app-alert" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container-fluid app-container d-flex flex-wrap justify-content-between gap-2">
+      <span>Estimations indicatives — ne remplace pas un expert-comptable.</span>
+      <span><a href="{{ url_for('main.privacy') }}">Confidentialité</a> · <a href="{{ url_for('main.terms') }}">CGU</a></span>
+    </div>
+    <div class="container-fluid app-container text-center mt-2">
+      <em>Powered by ÆDIFY</em>
+    </div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

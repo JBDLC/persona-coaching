@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ patient.display_name() }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h3">{{ patient.display_name() }}</h1>
+    <p class="text-muted mb-0">{{ patient.user.email }} · Séances prévues : {{ patient.sessions_planned }} · Restantes (complétées déduites) : <strong>{{ remaining_sessions }}</strong></p>
+  </div>
+  <div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('coach.patient_edit', pid=patient.id) }}">Modifier la fiche</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h2 class="h5">Contrat</h2>
+      {% if contract %}
+      <p>{{ contract.title }} (v{{ contract.version }}, {{ contract.uploaded_at.strftime('%d/%m/%Y') }})</p>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.patient_contract_download', pid=patient.id) }}">Télécharger</a>
+      {% else %}
+      <p class="text-muted">Aucun contrat.</p>
+      {% endif %}
+      <hr>
+      <form method="post" action="{{ url_for('coach.patient_contract_upload', pid=patient.id) }}" enctype="multipart/form-data">
+        {{ contract_form.hidden_tag() }}
+        <div class="mb-2">{{ contract_form.title.label(class="form-label") }}{{ contract_form.title(class="form-control") }}</div>
+        <div class="mb-2">{{ contract_form.file.label(class="form-label") }}{{ contract_form.file(class="form-control") }}</div>
+        {{ contract_form.submit(class="btn btn-sm btn-primary") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h2 class="h5">Séances</h2>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead><tr><th>Date</th><th>Statut</th><th>Paiement</th><th></th></tr></thead>
+          <tbody>
+            {% for s in slots %}
+            <tr>
+              <td>{{ s.start_utc|local_dt(coach_tz) }}</td>
+              <td>{{ s.status }}</td>
+              <td>{% if s.paid %}Payé{% else %}Non payé{% endif %}</td>
+              <td>
+                {% if s.status != 'available' %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.slot_session', sid=s.id) }}">Compte rendu</a>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="text-muted">Aucune séance.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

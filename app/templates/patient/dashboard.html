@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Espace patient{% endblock %}
+{% block content %}
+<h1 class="h3 mb-2">Bonjour {{ patient.first_name }}</h1>
+<p class="text-muted">Coach : {{ coach.name if coach else '—' }}</p>
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="text-muted small">Séances restantes (sur contrat en cours)</div>
+      <div class="fs-2 fw-bold">{{ remaining_sessions }}</div>
+      <div class="small text-muted">Basé sur : séances prévues − séances complétées.</div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3">
+      <div class="text-muted small">Prochains rendez-vous</div>
+      <ul class="mb-0">
+        {% for s in upcoming %}
+        <li>{{ s.start_utc|local_dt(coach_tz) }}</li>
+        {% else %}
+        <li class="text-muted">Aucun.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="d-flex flex-wrap gap-2">
+  <a class="btn btn-primary" href="{{ url_for('patient.book') }}">Réserver un créneau</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('patient.sessions') }}">Mes séances &amp; paiements</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('patient.contract') }}">Mon contrat</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('patient.report_book_pdf') }}">Livre PDF des comptes rendus</a>
+</div>
+{% endblock %}
