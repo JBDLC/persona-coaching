@@ -132,10 +132,13 @@ def dashboard():
     )
 
 
-@bp.route("/create-coach", methods=["POST"])
+@bp.route("/create-coach", methods=["GET", "POST"])
 @login_required
 @admin_required
 def create_coach():
+    if request.method == "GET":
+        return redirect(url_for("admin.dashboard"))
+
     create_form = CoachRegisterForm()
     if not create_form.validate_on_submit():
         flash("Formulaire invalide.", "danger")
