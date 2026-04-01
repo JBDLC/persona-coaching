@@ -2,23 +2,37 @@
 {% block title %}Tableau de bord — Coach{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4">Tableau de bord</h1>
+<div class="mb-3">
+  <a class="btn btn-outline-danger position-relative" href="{{ url_for('coach.alerts') }}">
+    Alertes
+    {% if alerts_unread_count %}
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">{{ alerts_unread_count }}</span>
+    {% endif %}
+  </a>
+</div>
 <div class="row g-3 mb-4">
-  <div class="col-md-4">
+  <div class="col-md-6 col-xl-3">
     <div class="card p-3">
       <div class="text-muted small">Patients actifs</div>
       <div class="fs-3 fw-bold">{{ patients_count }}</div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-6 col-xl-3">
     <div class="card p-3">
-      <div class="text-muted small">CA séances planifiées (futures)</div>
+      <div class="text-muted small">CA séances planifiées à encaisser</div>
       <div class="fs-3 fw-bold">{{ scheduled_revenue }} €</div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-6 col-xl-3">
     <div class="card p-3">
-      <div class="text-muted small">CA pipeline (séances restantes × tarif)</div>
+      <div class="text-muted small">CA pipeline restant à encaisser</div>
       <div class="fs-3 fw-bold">{{ pipeline_revenue }} €</div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card p-3">
+      <div class="text-muted small">Fonds réellement encaissés</div>
+      <div class="fs-3 fw-bold text-success">{{ funds_collected }} €</div>
     </div>
   </div>
 </div>

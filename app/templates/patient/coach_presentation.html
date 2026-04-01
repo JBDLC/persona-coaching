@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Présentation du coach{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Présentation du coach</h1>
+<div class="card p-4">
+  <div class="d-flex align-items-start gap-3 mb-3">
+    {% if settings.profile_image_path %}
+    <img src="{{ url_for('static', filename='uploads/' ~ settings.profile_image_path) }}" alt="Photo coach" style="width:96px;height:96px;object-fit:cover;border-radius:50%;">
+    {% endif %}
+    <div>
+      <div class="h5 mb-1">{{ coach.name }}</div>
+      {% if settings.profile_youtube_url %}
+      <a href="{{ settings.profile_youtube_url }}" target="_blank" rel="noopener">Voir la vidéo YouTube</a>
+      {% endif %}
+    </div>
+  </div>
+  {% if settings.profile_bio %}
+  <p class="mb-0" style="white-space:pre-wrap;">{{ settings.profile_bio }}</p>
+  {% else %}
+  <p class="text-muted mb-0">Votre coach n'a pas encore ajouté de présentation.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}RGPD & Sécurité{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">RGPD & Sécurité</h1>
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Retour administration</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h2 class="h5">Nouvelle demande RGPD</h2>
+      <form method="post" action="{{ url_for('admin.gdpr_request_new') }}">
+        {{ request_form.hidden_tag() }}
+        <div class="mb-2">{{ request_form.user_email.label(class="form-label") }}{{ request_form.user_email(class="form-control") }}</div>
+        <div class="mb-2">{{ request_form.request_type.label(class="form-label") }}{{ request_form.request_type(class="form-control") }}</div>
+        <div class="mb-2">{{ request_form.notes.label(class="form-label") }}{{ request_form.notes(class="form-control", rows=3) }}</div>
+        {{ request_form.submit(class="btn btn-primary") }}
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card p-4">
+      <h2 class="h5">Nouvel incident sécurité</h2>
+      <form method="post" action="{{ url_for('admin.security_incident_new') }}">
+        {{ incident_form.hidden_tag() }}
+        <div class="mb-2">{{ incident_form.incident_type.label(class="form-label") }}{{ incident_form.incident_type(class="form-control") }}</div>
+        <div class="mb-2">{{ incident_form.severity.label(class="form-label") }}{{ incident_form.severity(class="form-control") }}</div>
+        <div class="mb-2">{{ incident_form.related_user_email.label(class="form-label") }}{{ incident_form.related_user_email(class="form-control") }}</div>
+        <div class="mb-2">{{ incident_form.description.label(class="form-label") }}{{ incident_form.description(class="form-control", rows=3) }}</div>
+        {{ incident_form.submit(class="btn btn-outline-danger") }}
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 mt-4">
+  <h2 class="h5 mb-3">Demandes RGPD</h2>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>ID</th><th>User ID</th><th>Type</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for r in gdpr_rows %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.user_id }}</td>
+          <td>{{ r.request_type }}</td>
+          <td>{{ r.status }}</td>
+          <td class="d-flex gap-1 flex-wrap">
+            <form method="post" action="{{ url_for('admin.gdpr_request_status', rid=r.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="status" value="in_review">
+              <button type="submit" class="btn btn-sm btn-outline-primary">En cours</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.gdpr_request_status', rid=r.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="status" value="done">
+              <button type="submit" class="btn btn-sm btn-outline-success">Terminer</button>
+            </form>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.gdpr_export_user', user_id=r.user_id) }}">Export</a>
+            <form method="post" action="{{ url_for('admin.gdpr_anonymize_user', user_id=r.user_id) }}" onsubmit="return confirm('Anonymiser cet utilisateur ?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-warning">Anonymiser</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.toggle_legal_hold', user_id=r.user_id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-dark">Legal hold</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted">Aucune demande RGPD.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card p-4 mt-4">
+  <h2 class="h5 mb-3">Incidents sécurité</h2>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>ID</th><th>Type</th><th>Sévérité</th><th>Statut</th><th>Description</th><th></th></tr></thead>
+      <tbody>
+        {% for i in incident_rows %}
+        <tr>
+          <td>{{ i.id }}</td>
+          <td>{{ i.incident_type }}</td>
+          <td>{{ i.severity }}</td>
+          <td>{{ i.status }}</td>
+          <td>{{ i.description }}</td>
+          <td>
+            {% if i.status != 'closed' %}
+            <form method="post" action="{{ url_for('admin.security_incident_close', iid=i.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-sm btn-outline-success">Clôturer</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-muted">Aucun incident.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

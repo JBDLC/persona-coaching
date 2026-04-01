@@ -27,6 +27,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False)  # admin | coach | patient
     coach_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     is_suspended = db.Column(db.Boolean, default=False, nullable=False)
+    legal_hold = db.Column(db.Boolean, default=False, nullable=False)
     must_change_password = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=utcnow)
 
@@ -69,6 +70,25 @@ class CoachSettings(db.Model):
     timezone = db.Column(db.String(64), default="Europe/Paris")
     cancellation_hours = db.Column(db.Integer, default=24)
     email_notifications = db.Column(db.Boolean, default=True)
+    notify_booking_patient = db.Column(db.Boolean, default=True)
+    notify_booking_coach = db.Column(db.Boolean, default=True)
+    notify_reminder_day_before = db.Column(db.Boolean, default=True)
+    smtp_server = db.Column(db.String(255))
+    smtp_port = db.Column(db.Integer, default=587)
+    smtp_use_tls = db.Column(db.Boolean, default=True)
+    smtp_username = db.Column(db.String(255))
+    smtp_password = db.Column(db.String(255))
+    smtp_default_sender = db.Column(db.String(255))
+    profile_image_path = db.Column(db.String(512))
+    profile_bio = db.Column(db.Text)
+    profile_youtube_url = db.Column(db.String(512))
+    last_alert_seen_at = db.Column(db.DateTime)
+    stripe_account_id = db.Column(db.String(64), index=True)
+    stripe_onboarding_state = db.Column(db.String(24), default="not_connected")
+    stripe_details_submitted = db.Column(db.Boolean, default=False)
+    stripe_charges_enabled = db.Column(db.Boolean, default=False)
+    stripe_payouts_enabled = db.Column(db.Boolean, default=False)
+    stripe_last_synced_at = db.Column(db.DateTime)
     tax_rate_percent = db.Column(db.Numeric(5, 2), default=25)
     social_charges_percent = db.Column(db.Numeric(5, 2), default=22)
     fixed_costs_monthly = db.Column(db.Numeric(12, 2), default=500)
@@ -132,8 +152,16 @@ class Slot(db.Model):
     end_utc = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default="available")  # available | booked | completed | cancelled
     notes = db.Column(db.Text)
+    meeting_link = db.Column(db.String(512))
     paid = db.Column(db.Boolean, default=False)
+    paid_at = db.Column(db.DateTime)
     invoice_number = db.Column(db.String(64))
+    invoice_file_path = db.Column(db.String(512))
+    invoice_uploaded_at = db.Column(db.DateTime)
+    stripe_payment_intent_id = db.Column(db.String(128), index=True)
+    stripe_checkout_session_id = db.Column(db.String(128), index=True)
+    stripe_payment_status = db.Column(db.String(24), default="not_started")
+    reminder_sent_at = db.Column(db.DateTime)
     cancelled_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=utcnow)
 
@@ -160,6 +188,68 @@ class AuditLog(db.Model):
     coach = db.relationship("User", foreign_keys=[coach_id])
 
 
+class GdprRequest(db.Model):
+    __tablename__ = "gdpr_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    request_type = db.Column(db.String(32), nullable=False)  # access|rectification|erasure|portability|opposition|restriction
+    status = db.Column(db.String(24), default="new", nullable=False)  # new|in_review|done|rejected
+    notes = db.Column(db.Text)
+    handled_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    handled_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    user = db.relationship("User", foreign_keys=[user_id])
+    handled_by = db.relationship("User", foreign_keys=[handled_by_user_id])
+
+
+class SecurityIncident(db.Model):
+    __tablename__ = "security_incidents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    incident_type = db.Column(db.String(64), nullable=False)
+    severity = db.Column(db.String(16), default="low", nullable=False)
+    status = db.Column(db.String(24), default="open", nullable=False)  # open|investigating|closed
+    description = db.Column(db.Text, nullable=False)
+    related_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    closed_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    closed_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    related_user = db.relationship("User", foreign_keys=[related_user_id])
+    created_by = db.relationship("User", foreign_keys=[created_by_user_id])
+    closed_by = db.relationship("User", foreign_keys=[closed_by_user_id])
+
+
+class PaymentTransaction(db.Model):
+    __tablename__ = "payment_transactions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    slot_id = db.Column(db.Integer, db.ForeignKey("slots.id"), nullable=False, index=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    patient_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    stripe_account_id = db.Column(db.String(64), nullable=False)
+    stripe_checkout_session_id = db.Column(db.String(128), index=True)
+    stripe_payment_intent_id = db.Column(db.String(128), index=True)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(8), default="eur", nullable=False)
+    status = db.Column(db.String(24), default="pending", nullable=False)  # pending|succeeded|failed|canceled
+    created_at = db.Column(db.DateTime, default=utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+    slot = db.relationship("Slot", foreign_keys=[slot_id])
+
+
+class PlatformSetting(db.Model):
+    __tablename__ = "platform_settings"
+
+    key = db.Column(db.String(80), primary_key=True)
+    value = db.Column(db.Text)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
+
+
 def audit_log(coach_id: int, actor_id: int | None, action: str, entity_type: str | None = None, entity_id: int | None = None, meta: dict | None = None):
     row = AuditLog(
         coach_id=coach_id,
@@ -168,5 +258,24 @@ def audit_log(coach_id: int, actor_id: int | None, action: str, entity_type: str
         entity_type=entity_type,
         entity_id=entity_id,
         meta_json=json.dumps(meta, ensure_ascii=False, default=str) if meta else None,
+    )
+    db.session.add(row)
+
+
+def create_security_incident(
+    incident_type: str,
+    description: str,
+    severity: str = "low",
+    status: str = "open",
+    related_user_id: int | None = None,
+    created_by_user_id: int | None = None,
+):
+    row = SecurityIncident(
+        incident_type=incident_type,
+        description=description,
+        severity=severity,
+        status=status,
+        related_user_id=related_user_id,
+        created_by_user_id=created_by_user_id,
     )
     db.session.add(row)

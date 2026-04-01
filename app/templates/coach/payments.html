@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Paramètres paiements{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Paramètres &gt; Paiements</h1>
+<div class="card p-4">
+  <h2 class="h5">Stripe Connect</h2>
+  <p class="text-muted">
+    Les paiements sont encaissés directement sur votre compte Stripe professionnel (direct charges).
+    La plateforme ne conserve pas les fonds.
+  </p>
+
+  <div class="mb-3">
+    <span class="fw-semibold">Statut :</span>
+    {% if stripe_state == 'ready' %}
+      <span class="badge text-bg-success">Prêt à encaisser</span>
+    {% elif stripe_state == 'onboarding' %}
+      <span class="badge text-bg-warning">Onboarding en cours</span>
+    {% elif stripe_state == 'pending_review' %}
+      <span class="badge text-bg-info">En attente de validation Stripe</span>
+    {% else %}
+      <span class="badge text-bg-secondary">Non connecté</span>
+    {% endif %}
+  </div>
+
+  {% if stripe_account_id %}
+  <p class="small text-muted mb-2">Compte connecté : <code>{{ stripe_account_id }}</code></p>
+  {% endif %}
+  <p class="small text-muted mb-3">
+    Charges activées: {{ 'oui' if stripe_charges_enabled else 'non' }} ·
+    Virements activés: {{ 'oui' if stripe_payouts_enabled else 'non' }}
+  </p>
+  {% if stripe_last_synced_at %}
+  <p class="small text-muted">Dernière synchronisation: {{ stripe_last_synced_at|local_dt(coach_tz) }}</p>
+  {% endif %}
+  {% if stripe_error %}
+  <div class="alert alert-warning">{{ stripe_error }}</div>
+  {% endif %}
+
+  <div class="d-flex flex-wrap gap-2">
+    <form method="post" action="{{ url_for('coach.payments_connect') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary">Connecter mon compte Stripe</button>
+    </form>
+    <form method="post" action="{{ url_for('coach.payments_refresh') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-outline-secondary">Actualiser le statut</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

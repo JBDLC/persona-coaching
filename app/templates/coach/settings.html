@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="h3 mb-4">Paramètres coach</h1>
 <div class="card p-4">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     <div class="row">
       <div class="col-md-6 mb-3">{{ form.default_hourly_rate.label(class="form-label") }}{{ form.default_hourly_rate(class="form-control") }}</div>
@@ -11,6 +11,23 @@
       <div class="col-md-6 mb-3">{{ form.timezone.label(class="form-label") }}{{ form.timezone(class="form-control") }}</div>
       <div class="col-md-6 mb-3">{{ form.cancellation_hours.label(class="form-label") }}{{ form.cancellation_hours(class="form-control") }}</div>
       <div class="col-12 mb-3"><div class="form-check">{{ form.email_notifications(class="form-check-input") }}{{ form.email_notifications.label(class="form-check-label") }}</div></div>
+      <div class="col-12 mb-1"><div class="form-check">{{ form.notify_booking_patient(class="form-check-input") }}{{ form.notify_booking_patient.label(class="form-check-label") }}</div></div>
+      <div class="col-12 mb-1"><div class="form-check">{{ form.notify_booking_coach(class="form-check-input") }}{{ form.notify_booking_coach.label(class="form-check-label") }}</div></div>
+      <div class="col-12 mb-3"><div class="form-check">{{ form.notify_reminder_day_before(class="form-check-input") }}{{ form.notify_reminder_day_before.label(class="form-check-label") }}</div></div>
+      <hr>
+      <h2 class="h5 mb-3">Configuration email (SMTP)</h2>
+      <p class="text-muted small mb-3">Ces paramètres s'appliquent à vos emails envoyés à vos patients (confirmations de réservation). Si vide, la configuration globale de l'application est utilisée.</p>
+      <div class="col-md-6 mb-3">{{ form.smtp_server.label(class="form-label") }}{{ form.smtp_server(class="form-control", placeholder="smtp.exemple.com") }}</div>
+      <div class="col-md-3 mb-3">{{ form.smtp_port.label(class="form-label") }}{{ form.smtp_port(class="form-control", placeholder="587") }}</div>
+      <div class="col-md-3 mb-3 d-flex align-items-end"><div class="form-check">{{ form.smtp_use_tls(class="form-check-input") }}{{ form.smtp_use_tls.label(class="form-check-label") }}</div></div>
+      <div class="col-md-6 mb-3">{{ form.smtp_username.label(class="form-label") }}{{ form.smtp_username(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.smtp_password.label(class="form-label") }}{{ form.smtp_password(class="form-control", placeholder="Laisser vide pour conserver") }}</div>
+      <div class="col-md-6 mb-3">{{ form.smtp_default_sender.label(class="form-label") }}{{ form.smtp_default_sender(class="form-control", placeholder="coach@domaine.com") }}</div>
+      <hr>
+      <h2 class="h5 mb-3">Présentation coach</h2>
+      <div class="col-md-6 mb-3">{{ form.profile_photo.label(class="form-label") }}{{ form.profile_photo(class="form-control") }}</div>
+      <div class="col-md-12 mb-3">{{ form.profile_bio.label(class="form-label") }}{{ form.profile_bio(class="form-control", rows=4, placeholder="Présentez votre approche, votre expérience, etc.") }}</div>
+      <div class="col-md-12 mb-3">{{ form.profile_youtube_url.label(class="form-label") }}{{ form.profile_youtube_url(class="form-control", placeholder="https://www.youtube.com/watch?v=...") }}</div>
       <hr>
       <div class="col-md-4 mb-3">{{ form.tax_rate_percent.label(class="form-label") }}{{ form.tax_rate_percent(class="form-control") }}</div>
       <div class="col-md-4 mb-3">{{ form.social_charges_percent.label(class="form-label") }}{{ form.social_charges_percent(class="form-control") }}</div>

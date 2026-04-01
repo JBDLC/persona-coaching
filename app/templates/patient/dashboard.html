@@ -3,6 +3,27 @@
 {% block content %}
 <h1 class="h3 mb-2">Bonjour {{ patient.first_name }}</h1>
 <p class="text-muted">Coach : {{ coach.name if coach else '—' }}</p>
+{% if coach and coach_settings %}
+<div class="card p-3 mb-4">
+  <div class="d-flex align-items-start gap-3">
+    {% if coach_settings.profile_image_path %}
+    <img src="{{ url_for('static', filename='uploads/' ~ coach_settings.profile_image_path) }}" alt="Photo coach" style="width:72px;height:72px;object-fit:cover;border-radius:50%;">
+    {% endif %}
+    <div>
+      <div class="fw-semibold">{{ coach.name }}</div>
+      {% if coach_settings.profile_bio %}
+      <div class="small text-muted">{{ coach_settings.profile_bio[:180] }}{% if coach_settings.profile_bio|length > 180 %}...{% endif %}</div>
+      {% endif %}
+      <div class="mt-2 d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('patient.coach_presentation') }}">Présentation</a>
+        {% if coach_settings.profile_youtube_url %}
+        <a class="btn btn-sm btn-outline-secondary" href="{{ coach_settings.profile_youtube_url }}" target="_blank" rel="noopener">YouTube</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <div class="card p-3">
@@ -16,7 +37,12 @@
       <div class="text-muted small">Prochains rendez-vous</div>
       <ul class="mb-0">
         {% for s in upcoming %}
-        <li>{{ s.start_utc|local_dt(coach_tz) }}</li>
+        <li>
+          {{ s.start_utc|local_dt(coach_tz) }}
+          {% if s.meeting_link %}
+          — <a href="{{ s.meeting_link }}" target="_blank" rel="noopener">Lien séance</a>
+          {% endif %}
+        </li>
         {% else %}
         <li class="text-muted">Aucun.</li>
         {% endfor %}

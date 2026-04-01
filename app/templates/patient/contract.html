@@ -2,10 +2,14 @@
 {% block title %}Mon contrat{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4">Mon contrat</h1>
-{% if contract %}
+{% if contracts %}
 <div class="card p-4">
-  <p><strong>{{ contract.title }}</strong> — version {{ contract.version }} ({{ contract.uploaded_at.strftime('%d/%m/%Y') }})</p>
-  <a class="btn btn-primary" href="{{ url_for('patient.contract_download') }}">Télécharger</a>
+  {% for contract in contracts %}
+  <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+    <div><strong>{{ contract.title }}</strong> — version {{ contract.version }} ({{ contract.uploaded_at.strftime('%d/%m/%Y') }})</div>
+    <a class="btn btn-sm btn-primary" href="{{ url_for('patient.contract_download_one', cid=contract.id) }}">Télécharger</a>
+  </div>
+  {% endfor %}
 </div>
 {% else %}
 <p class="text-muted">Votre coach n’a pas encore déposé de contrat.</p>

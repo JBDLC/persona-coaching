@@ -11,13 +11,34 @@
   </div>
 </div>
 
+<div class="card p-3 mb-4">
+  <h2 class="h6 mb-2">Accès patient</h2>
+  <p class="text-muted small mb-2">Définir un mot de passe temporaire pour ce patient. Il sera obligé de le changer à sa prochaine connexion.</p>
+  <form method="post" action="{{ url_for('coach.patient_reset_password', pid=patient.id) }}" class="row g-2 align-items-end">
+    {{ reset_password_form.hidden_tag() }}
+    <div class="col-md-6">
+      {{ reset_password_form.password.label(class="form-label") }}
+      {{ reset_password_form.password(class="form-control", placeholder="Nouveau mot de passe") }}
+    </div>
+    <div class="col-md-auto">
+      {{ reset_password_form.submit(class="btn btn-outline-primary") }}
+    </div>
+  </form>
+</div>
+
 <div class="row g-4">
   <div class="col-lg-6">
     <div class="card p-4">
-      <h2 class="h5">Contrat</h2>
-      {% if contract %}
-      <p>{{ contract.title }} (v{{ contract.version }}, {{ contract.uploaded_at.strftime('%d/%m/%Y') }})</p>
-      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.patient_contract_download', pid=patient.id) }}">Télécharger</a>
+      <h2 class="h5">Contrats</h2>
+      {% if contracts %}
+      <div class="mb-3">
+        {% for contract in contracts %}
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+          <div class="small">{{ contract.title }} (v{{ contract.version }}, {{ contract.uploaded_at.strftime('%d/%m/%Y') }})</div>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.patient_contract_download_one', pid=patient.id, cid=contract.id) }}">Télécharger</a>
+        </div>
+        {% endfor %}
+      </div>
       {% else %}
       <p class="text-muted">Aucun contrat.</p>
       {% endif %}

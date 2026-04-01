@@ -24,6 +24,18 @@ class Config:
     MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER")
+    STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")
+    STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+    STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+    STRIPE_CONNECT_REFRESH_URL = os.environ.get("STRIPE_CONNECT_REFRESH_URL")
+    STRIPE_CONNECT_RETURN_URL = os.environ.get("STRIPE_CONNECT_RETURN_URL")
+    # Reversible encryption key for sensitive values (Fernet urlsafe base64 key).
+    # If missing, a deterministic key is derived from SECRET_KEY.
+    DATA_ENCRYPTION_KEY = os.environ.get("DATA_ENCRYPTION_KEY")
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() in ("1", "true", "yes")
     PERMANENT_SESSION_LIFETIME = timedelta(days=int(os.environ.get("SESSION_DAYS", "7")))
+    GDPR_AUDIT_RETENTION_DAYS = int(os.environ.get("GDPR_AUDIT_RETENTION_DAYS", "730"))
+    GDPR_SECURITY_INCIDENT_RETENTION_DAYS = int(os.environ.get("GDPR_SECURITY_INCIDENT_RETENTION_DAYS", "1825"))
+    GDPR_INACTIVE_USER_RETENTION_DAYS = int(os.environ.get("GDPR_INACTIVE_USER_RETENTION_DAYS", "1095"))

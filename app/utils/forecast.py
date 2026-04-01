@@ -14,7 +14,7 @@ def utcnow():
 
 
 def scheduled_revenue_coach(coach_id: int) -> Decimal:
-    """CA des séances déjà réservées (futures) sur le calendrier."""
+    """CA des séances futures déjà planifiées mais pas encore payées (reste à encaisser)."""
     now = utcnow()
     q = (
         db.session.query(Slot, Patient)
@@ -23,6 +23,7 @@ def scheduled_revenue_coach(coach_id: int) -> Decimal:
             Slot.coach_id == coach_id,
             Slot.status.in_(("booked", "completed")),
             Slot.start_utc >= now,
+            Slot.paid.is_(False),
         )
     )
     coach = db.session.get(User, coach_id)
@@ -37,7 +38,7 @@ def scheduled_revenue_coach(coach_id: int) -> Decimal:
 
 
 def pipeline_revenue_coach(coach_id: int) -> Decimal:
-    """CA potentiel : séances restantes (forfait - complétées) × tarif horaire (1h/séance estimée)."""
+    """CA potentiel restant à encaisser : (séances prévues - séances payées) × tarif horaire."""
     coach = db.session.get(User, coach_id)
     if not coach or not coach.settings:
         return Decimal("0")
@@ -45,14 +46,39 @@ def pipeline_revenue_coach(coach_id: int) -> Decimal:
     patients = Patient.query.filter_by(coach_id=coach_id, active=True).all()
     total = Decimal("0")
     for p in patients:
-        done = (
-            Slot.query.filter_by(patient_id=p.id, status="completed")
+        paid_count = (
+            Slot.query.filter(
+                Slot.patient_id == p.id,
+                Slot.status.in_(("booked", "completed")),
+                Slot.paid.is_(True),
+            )
             .with_entities(func.count())
             .scalar()
         )
-        remaining = max(0, (p.sessions_planned or 0) - int(done or 0))
+        remaining = max(0, (p.sessions_planned or 0) - int(paid_count or 0))
         rate = p.effective_hourly_rate(default_rate)
         total += Decimal(str(remaining * rate))
+    return total.quantize(Decimal("0.01"))
+
+
+def collected_revenue_coach(coach_id: int) -> Decimal:
+    """Fonds réellement encaissés : toutes les séances payées (Stripe ou manuel)."""
+    q = (
+        db.session.query(Slot, Patient)
+        .join(Patient, Slot.patient_id == Patient.id)
+        .filter(
+            Slot.coach_id == coach_id,
+            Slot.status.in_(("booked", "completed")),
+            Slot.paid.is_(True),
+        )
+    )
+    coach = db.session.get(User, coach_id)
+    settings = coach.settings if coach else None
+    default_rate = float(settings.default_hourly_rate) if settings else 0.0
+    total = Decimal("0")
+    for slot, patient in q:
+        rate = patient.effective_hourly_rate(default_rate)
+        total += Decimal(str(slot.duration_hours() * rate))
     return total.quantize(Decimal("0.01"))
 
 

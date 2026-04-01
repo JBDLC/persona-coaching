@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Admin — SMTP global{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">AdminPersona — SMTP global</h1>
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Retour admin</a>
+</div>
+
+<div class="card p-4">
+  <p class="text-muted">
+    SMTP global de la plateforme. Il est utilisé en fallback quand un coach n'a pas configuré son propre SMTP.
+  </p>
+  <p class="small mb-3">Mot de passe SMTP global configuré : <strong>{{ "oui" if has_password else "non" }}</strong></p>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-6 mb-3">{{ form.mail_server.label(class="form-label") }}{{ form.mail_server(class="form-control", placeholder="smtp.exemple.com") }}</div>
+      <div class="col-md-3 mb-3">{{ form.mail_port.label(class="form-label") }}{{ form.mail_port(class="form-control", placeholder="587") }}</div>
+      <div class="col-md-3 mb-3 d-flex align-items-end"><div class="form-check">{{ form.mail_use_tls(class="form-check-input") }}{{ form.mail_use_tls.label(class="form-check-label") }}</div></div>
+      <div class="col-md-6 mb-3">{{ form.mail_username.label(class="form-label") }}{{ form.mail_username(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.mail_password.label(class="form-label") }}{{ form.mail_password(class="form-control", placeholder="Laisser vide pour conserver") }}</div>
+      <div class="col-md-6 mb-3">{{ form.mail_default_sender.label(class="form-label") }}{{ form.mail_default_sender(class="form-control", placeholder="no-reply@domaine.com") }}</div>
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+</div>
+{% endblock %}

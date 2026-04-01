@@ -1,7 +1,126 @@
 {% extends "base.html" %}
 {% block title %}Confidentialité{% endblock %}
 {% block content %}
-<h1>Politique de confidentialité (résumé)</h1>
-<p>Les données personnelles (identité, email, comptes rendus) sont traitées pour la gestion de la relation coaching. Vous pouvez demander l’accès ou la suppression de vos données conformément au RGPD. Les données sont stockées sur l’infrastructure déployée par votre responsable de traitement ; sauvegardez régulièrement vos exports.</p>
-<p><a href="{{ url_for('main.index') }}">Retour</a></p>
+<div class="card p-4 p-md-5">
+  <h1 class="h3 mb-3">Politique de confidentialité</h1>
+  <p class="text-muted">Version en vigueur : 31/03/2026</p>
+  <p>
+    Cette politique décrit le traitement des données personnelles réalisé via la plateforme Persona. Elle est
+    rédigée en conformité avec le Règlement (UE) 2016/679 ("RGPD") et la loi Informatique et Libertés modifiée.
+  </p>
+
+  <h2 class="h5 mt-4">1. Identité des parties</h2>
+  <p>
+    Le responsable de traitement est l'organisation qui exploite l'instance Persona (cabinet, coach indépendant
+    ou structure utilisatrice) et qui détermine les finalités et moyens de traitement. Persona intervient comme
+    éditeur de la solution logicielle et, selon les cas d'usage, sous-traitant technique.
+  </p>
+
+  <h2 class="h5 mt-4">2. Données traitées</h2>
+  <ul>
+    <li>Données d'identification : nom, prénom, email, rôle utilisateur, identifiants de connexion.</li>
+    <li>Données d'activité : créneaux, réservations, annulations, journal d'actions, horodatages.</li>
+    <li>Données métier : comptes rendus de séances, informations de suivi, contrats, factures.</li>
+    <li>Données techniques : traces applicatives, informations de sécurité et de diagnostic.</li>
+  </ul>
+  <p>
+    Les catégories particulières de données (article 9 RGPD) ne doivent être collectées que si elles sont
+    strictement nécessaires, documentées et encadrées juridiquement par le responsable de traitement.
+  </p>
+
+  <h2 class="h5 mt-4">3. Finalités et bases légales</h2>
+  <ul>
+    <li>Gestion des comptes et authentification : exécution du contrat (art. 6.1.b RGPD).</li>
+    <li>Organisation des séances et relation coach/patient : exécution du contrat (art. 6.1.b).</li>
+    <li>Envoi d'emails opérationnels (confirmation, rappels, documents) : intérêt légitime ou contrat (art. 6.1.f / b).</li>
+    <li>Sécurisation et traçabilité : intérêt légitime (art. 6.1.f).</li>
+    <li>Gestion des paiements en ligne via Stripe Connect (onboarding, suivi d'état, rapprochement) : exécution du contrat et intérêt légitime (art. 6.1.b / 6.1.f).</li>
+    <li>Calcul du chiffre d'affaires encaissé par coach (mensuel) pour la facturation des services de la plateforme : intérêt légitime et exécution du contrat (art. 6.1.f / 6.1.b).</li>
+    <li>Respect d'obligations légales (comptables, fiscales, archivage) : obligation légale (art. 6.1.c).</li>
+  </ul>
+
+  <h2 class="h5 mt-4">4. Destinataires des données</h2>
+  <ul>
+    <li>Utilisateurs autorisés de l'instance (administrateurs, coachs, patients selon leurs droits).</li>
+    <li>Sous-traitants techniques nécessaires à l'hébergement, la base de données, l'email, la sécurité et le paiement.</li>
+    <li>Stripe (prestataire de paiement), en qualité de prestataire technique de paiement et selon la configuration Connect mise en place.</li>
+    <li>Autorités légalement habilitées, uniquement en cas d'obligation réglementaire ou judiciaire.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">4 bis. Paiements Stripe Connect</h2>
+  <p>
+    Les paiements en ligne sont opérés via Stripe Connect. Chaque coach connecte son propre compte Stripe
+    professionnel et les fonds sont encaissés directement sur ce compte (direct charges). La plateforme n'encaisse
+    pas les fonds finaux des patients pour le compte des coachs dans ce modèle.
+  </p>
+  <p>
+    La plateforme peut traiter des métadonnées et statuts de paiement nécessaires à l'exploitation du service
+    (ex. identifiants de transaction, état de paiement, horodatage d'encaissement), ainsi que des agrégats mensuels
+    de chiffre d'affaires encaissé par coach, notamment pour la facturation des services de la plateforme.
+  </p>
+
+  <h2 class="h5 mt-4">5. Durées de conservation</h2>
+  <ul>
+    <li>Comptes utilisateurs : durée de la relation contractuelle, puis archivage et/ou suppression selon obligations légales.</li>
+    <li>Données de séances, contrats et factures : durée nécessaire au suivi, puis conservation légale applicable.</li>
+    <li>Journaux techniques et sécurité : conservation limitée au strict nécessaire à l'intégrité du service.</li>
+  </ul>
+  <p>
+    Le responsable de traitement définit une politique d'archivage et de purge documentée, appliquée de manière
+    périodique.
+  </p>
+
+  <h2 class="h5 mt-4">6. Sécurité et confidentialité</h2>
+  <ul>
+    <li>Contrôle d'accès par rôles et authentification des utilisateurs.</li>
+    <li>Chiffrement des mots de passe (hachage) et protections applicatives (CSRF, validation des entrées).</li>
+    <li>Journalisation des actions critiques et surveillance des incidents.</li>
+    <li>Mesures de sauvegarde et de continuité adaptées au niveau de risque.</li>
+    <li>Protection des clés et secrets techniques (principe de moindre privilège, cloisonnement et stockage sécurisé).</li>
+  </ul>
+  <p>
+    En cas de violation de données personnelles, le responsable de traitement applique les obligations de
+    notification prévues aux articles 33 et 34 du RGPD.
+  </p>
+
+  <h2 class="h5 mt-4">7. Transferts hors Union européenne</h2>
+  <p>
+    En cas de transfert de données vers un pays tiers, des garanties appropriées sont mises en place (décision
+    d'adéquation, clauses contractuelles types ou mécanisme équivalent), conformément au chapitre V du RGPD.
+  </p>
+
+  <h2 class="h5 mt-4">8. Droits des personnes concernées</h2>
+  <p>Conformément au RGPD, vous disposez des droits suivants :</p>
+  <ul>
+    <li>Droit d'accès, de rectification et d'effacement.</li>
+    <li>Droit à la limitation et droit d'opposition.</li>
+    <li>Droit à la portabilité des données lorsque applicable.</li>
+    <li>Droit de retirer votre consentement lorsque le traitement repose sur celui-ci.</li>
+    <li>Droit d'introduire une réclamation auprès de la CNIL.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">9. Exercice des droits</h2>
+  <p>
+    Les demandes s'exercent auprès du responsable de traitement via les coordonnées fournies par votre
+    organisation. Une vérification d'identité peut être demandée. Une réponse est fournie dans les délais
+    réglementaires (en principe un mois, prolongeable selon la complexité).
+  </p>
+
+  <h2 class="h5 mt-4">10. Cookies et traceurs</h2>
+  <p>
+    Persona utilise principalement des cookies techniques nécessaires à l'authentification et au fonctionnement
+    sécurisé de l'application. Tout traceur non strictement nécessaire doit faire l'objet d'une information
+    spécifique et, lorsque requis, d'un consentement préalable.
+  </p>
+
+  <h2 class="h5 mt-4">11. Mise à jour de la politique</h2>
+  <p>
+    Cette politique peut être modifiée afin de refléter les évolutions légales, réglementaires ou techniques.
+    La version applicable est celle publiée sur cette page à la date indiquée en en-tête.
+  </p>
+
+  <div class="mt-4">
+    <a class="btn btn-outline-primary" href="{{ url_for('main.index') }}">Retour à l'accueil</a>
+  </div>
+</div>
 {% endblock %}

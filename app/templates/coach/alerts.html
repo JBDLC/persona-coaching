@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Alertes — Coach{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">Alertes patients</h1>
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Date</th><th>Événement</th><th>Patient</th><th></th></tr></thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.created_at|local_dt(coach_tz) }}</td>
+          <td>{{ item.label }}</td>
+          <td>{{ item.patient_name or '—' }}</td>
+          <td>
+            {% if item.slot_id %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('coach.slot_session', sid=item.slot_id) }}">Voir la séance</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-muted">Aucune alerte.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

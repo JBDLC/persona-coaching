@@ -5,11 +5,11 @@
 <p class="text-muted">Fuseau : {{ tz }} — Les dates saisies sont interprétées dans ce fuseau.</p>
 <div class="card p-4 mb-4">
   <h2 class="h5">Ajouter un créneau libre</h2>
+  <p class="text-muted small mb-3">Chaque créneau ajouté dure automatiquement 1 heure.</p>
   <form method="post" class="row g-3">
     {{ form.hidden_tag() }}
-    <div class="col-md-5">{{ form.start_local.label(class="form-label") }}{{ form.start_local(class="form-control", type="datetime-local") }}</div>
-    <div class="col-md-5">{{ form.end_local.label(class="form-label") }}{{ form.end_local(class="form-control", type="datetime-local") }}</div>
-    <div class="col-md-2 d-flex align-items-end">{{ form.submit(class="btn btn-primary w-100") }}</div>
+    <div class="col-md-8">{{ form.start_local.label(class="form-label") }}{{ form.start_local(class="form-control", type="datetime-local") }}</div>
+    <div class="col-md-4 d-flex align-items-end">{{ form.submit(class="btn btn-primary w-100") }}</div>
   </form>
 </div>
 <div class="table-responsive">

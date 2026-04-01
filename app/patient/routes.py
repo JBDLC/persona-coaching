@@ -1,17 +1,18 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import abort, current_app, flash, redirect, render_template, request, send_file, url_for
+from flask import abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.models import Patient, Slot
+from app.models import ContractVersion, PaymentTransaction, Patient, Slot, audit_log
 from app.patient import bp
 from app.utils.booking import can_book_after_min_days, can_cancel_slot, last_session_end_utc
 from app.utils.datetime_parse import utc_naive_to_local_str
 from app.utils.decorators import patient_required
 from app.utils.email import send_booking_confirmation, send_coach_new_booking
 from app.utils.pdf import build_session_book_pdf
+from app.utils.stripe_connect import _require_stripe, _stripe_field, create_direct_checkout_session
 
 
 def _patient_profile() -> Patient:
@@ -27,6 +28,60 @@ def _coach_user():
     if not current_user.coach_id:
         return None
     return db.session.get(User, current_user.coach_id)
+
+
+def _sync_pending_payments_for_patient(patient: Patient):
+    pending = (
+        PaymentTransaction.query.filter_by(patient_user_id=current_user.id, status="pending")
+        .order_by(PaymentTransaction.id.desc())
+        .limit(5)
+        .all()
+    )
+    if not pending:
+        return 0
+    try:
+        sdk = _require_stripe()
+    except Exception:
+        return 0
+    synced = 0
+    for tx in pending:
+        if not tx.stripe_checkout_session_id:
+            continue
+        try:
+            cs = sdk.checkout.Session.retrieve(
+                tx.stripe_checkout_session_id,
+                stripe_account=tx.stripe_account_id,
+            )
+        except Exception:
+            continue
+        payment_status = _stripe_field(cs, "payment_status")
+        checkout_status = _stripe_field(cs, "status")
+        if payment_status == "paid" or checkout_status == "complete":
+            slot = Slot.query.filter_by(id=tx.slot_id).first()
+            if slot:
+                if slot.stripe_payment_status != "succeeded":
+                    audit_log(
+                        slot.coach_id,
+                        current_user.id,
+                        "payment_succeeded",
+                        "Slot",
+                        slot.id,
+                        {"patient_name": patient.display_name()},
+                    )
+                slot.paid = True
+                if not slot.paid_at:
+                    slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                slot.stripe_payment_status = "succeeded"
+                slot.stripe_checkout_session_id = tx.stripe_checkout_session_id
+                slot.stripe_payment_intent_id = _stripe_field(cs, "payment_intent")
+            tx.status = "succeeded"
+            tx.stripe_payment_intent_id = _stripe_field(cs, "payment_intent")
+            synced += 1
+        elif checkout_status == "expired":
+            tx.status = "failed"
+    if synced:
+        db.session.commit()
+    return synced
 
 
 @bp.route("/")
@@ -52,9 +107,20 @@ def dashboard():
         "patient/dashboard.html",
         patient=p,
         coach=coach,
+        coach_settings=coach.settings if coach else None,
         remaining_sessions=remaining,
         upcoming=upcoming,
     )
+
+
+@bp.route("/coach-presentation")
+@login_required
+@patient_required
+def coach_presentation():
+    coach = _coach_user()
+    if not coach or not coach.settings:
+        abort(404)
+    return render_template("patient/coach_presentation.html", coach=coach, settings=coach.settings)
 
 
 @bp.route("/contract")
@@ -62,8 +128,7 @@ def dashboard():
 @patient_required
 def contract():
     p = _patient_profile()
-    cv = p.contracts[0] if p.contracts else None
-    return render_template("patient/contract.html", patient=p, contract=cv)
+    return render_template("patient/contract.html", patient=p, contracts=p.contracts)
 
 
 @bp.route("/contract/download")
@@ -83,11 +148,34 @@ def contract_download():
     return send_file(path, as_attachment=True, download_name=f"contrat-v{cv.version}{ext}")
 
 
+@bp.route("/contract/<int:cid>/download")
+@login_required
+@patient_required
+def contract_download_one(cid):
+    p = _patient_profile()
+    cv = ContractVersion.query.filter_by(id=cid, patient_id=p.id).first_or_404()
+    base = Path(current_app.config["UPLOAD_FOLDER"])
+    path = base / cv.file_path
+    if not path.is_file():
+        abort(404)
+    ext = path.suffix or ".pdf"
+    return send_file(path, as_attachment=True, download_name=f"contrat-v{cv.version}{ext}")
+
+
 @bp.route("/sessions")
 @login_required
 @patient_required
 def sessions():
     p = _patient_profile()
+    payment_query = request.args.get("payment")
+    if payment_query == "success":
+        synced = _sync_pending_payments_for_patient(p)
+        if synced:
+            flash("Paiement confirmé. La séance est marquée comme payée.", "success")
+        else:
+            flash("Paiement en cours de confirmation. Rafraîchissez dans quelques secondes.", "info")
+    elif payment_query == "cancel":
+        flash("Paiement annulé.", "warning")
     slots = (
         Slot.query.filter(
             Slot.patient_id == p.id,
@@ -97,6 +185,97 @@ def sessions():
         .all()
     )
     return render_template("patient/sessions.html", patient=p, slots=slots)
+
+
+@bp.route("/sessions/<int:sid>/invoice/download")
+@login_required
+@patient_required
+def session_invoice_download(sid):
+    p = _patient_profile()
+    slot = Slot.query.filter_by(id=sid, patient_id=p.id).first_or_404()
+    if not slot.invoice_file_path:
+        flash("Aucune facture disponible pour cette séance.", "warning")
+        return redirect(url_for("patient.sessions"))
+    path = Path(current_app.config["UPLOAD_FOLDER"]) / slot.invoice_file_path
+    if not path.is_file():
+        abort(404)
+    return send_file(path, as_attachment=True, download_name=path.name)
+
+
+@bp.route("/payments/session/<int:sid>/checkout", methods=["POST"])
+@login_required
+@patient_required
+def payment_checkout_session(sid):
+    p = _patient_profile()
+    coach = _coach_user()
+    if not coach or not coach.settings:
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": "Coach introuvable."}), 400
+        flash("Coach introuvable.", "danger")
+        return redirect(url_for("patient.sessions"))
+    settings = coach.settings
+    if not settings.stripe_account_id or not settings.stripe_charges_enabled:
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": "Le coach n'est pas prêt à encaisser en ligne."}), 400
+        flash("Le coach n'est pas prêt à encaisser en ligne.", "warning")
+        return redirect(url_for("patient.sessions"))
+
+    slot = Slot.query.filter_by(id=sid, patient_id=p.id).first_or_404()
+    if slot.paid:
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": "Cette séance est déjà payée."}), 400
+        flash("Cette séance est déjà payée.", "info")
+        return redirect(url_for("patient.sessions"))
+
+    rate = p.effective_hourly_rate(float(settings.default_hourly_rate))
+    amount_cents = int(round(slot.duration_hours() * rate * 100))
+    if amount_cents <= 0:
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": "Montant invalide pour cette séance."}), 400
+        flash("Montant invalide pour cette séance.", "danger")
+        return redirect(url_for("patient.sessions"))
+
+    success_url = url_for("patient.sessions", _external=True) + "?payment=success"
+    cancel_url = url_for("patient.sessions", _external=True) + "?payment=cancel"
+    metadata = {
+        "slot_id": str(slot.id),
+        "coach_id": str(coach.id),
+        "patient_user_id": str(current_user.id),
+    }
+    try:
+        session = create_direct_checkout_session(
+            stripe_account_id=settings.stripe_account_id,
+            amount_cents=amount_cents,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Stripe checkout creation failed")
+        if request.accept_mimetypes.best == "application/json":
+            return jsonify({"error": str(exc)}), 500
+        flash(f"Impossible d'initier le paiement: {exc}", "danger")
+        return redirect(url_for("patient.sessions"))
+
+    tx = PaymentTransaction(
+        slot_id=slot.id,
+        coach_id=coach.id,
+        patient_user_id=current_user.id,
+        stripe_account_id=settings.stripe_account_id,
+        stripe_checkout_session_id=_stripe_field(session, "id"),
+        stripe_payment_intent_id=_stripe_field(session, "payment_intent"),
+        amount_cents=amount_cents,
+        currency="eur",
+        status="pending",
+    )
+    slot.stripe_checkout_session_id = _stripe_field(session, "id")
+    slot.stripe_payment_intent_id = _stripe_field(session, "payment_intent")
+    slot.stripe_payment_status = "pending"
+    db.session.add(tx)
+    db.session.commit()
+    if request.accept_mimetypes.best != "application/json":
+        return redirect(_stripe_field(session, "url"))
+    return jsonify({"checkout_url": _stripe_field(session, "url")})
 
 
 @bp.route("/book", methods=["GET", "POST"])
@@ -153,11 +332,21 @@ def book():
             return redirect(url_for("patient.book"))
         slot.patient_id = p.id
         slot.status = "booked"
+        audit_log(
+            coach.id,
+            current_user.id,
+            "patient_booking_created",
+            "Slot",
+            slot.id,
+            {"patient_id": p.id, "patient_name": p.display_name()},
+        )
         db.session.commit()
         slot_str = utc_naive_to_local_str(slot.start_utc, s.timezone)
         if s.email_notifications:
-            send_booking_confirmation(p.user.email, p.display_name(), slot_str, coach.name)
-            send_coach_new_booking(coach.email, p.display_name(), slot_str)
+            if s.notify_booking_patient:
+                send_booking_confirmation(p.user.email, p.display_name(), slot_str, coach.name, coach_settings=s)
+            if s.notify_booking_coach:
+                send_coach_new_booking(coach.email, p.display_name(), slot_str, coach_settings=s)
         flash("Rendez-vous réservé.", "success")
         return redirect(url_for("patient.dashboard"))
 
@@ -187,6 +376,14 @@ def cancel_slot(sid):
     slot.patient_id = None
     slot.status = "available"
     slot.cancelled_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    audit_log(
+        coach.id,
+        current_user.id,
+        "patient_booking_cancelled",
+        "Slot",
+        slot.id,
+        {"patient_id": p.id, "patient_name": p.display_name()},
+    )
     db.session.commit()
     flash("Réservation annulée. Le créneau est à nouveau libre.", "info")
     return redirect(url_for("patient.sessions"))

@@ -1,15 +1,17 @@
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func, or_
 
 from app import db
 from app.auth import bp
 from app.forms import CoachRegisterForm, LoginForm
-from app.models import CoachSettings, User
+from app.models import CoachSettings, User, create_security_incident
+from app.extensions import limiter
 from app.utils.decorators import redirect_if_logged
 
 
 @bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     redir = redirect_if_logged()
     if redir:
@@ -30,6 +32,7 @@ def login():
             if not user.is_active:
                 flash("Compte suspendu. Contactez votre administrateur.", "warning")
                 return render_template("auth/login.html", form=form)
+            session.clear()
             login_user(user, remember=True)
             next_url = request.args.get("next")
             if user.must_change_password:
@@ -41,6 +44,12 @@ def login():
             if user.is_coach():
                 return redirect(url_for("coach.dashboard"))
             return redirect(url_for("patient.dashboard"))
+        create_security_incident(
+            incident_type="auth_failed_login",
+            severity="low",
+            description=f"Echec connexion identifiant={identifier}",
+        )
+        db.session.commit()
         flash("Identifiant ou mot de passe incorrect.", "danger")
     return render_template("auth/login.html", form=form)
 

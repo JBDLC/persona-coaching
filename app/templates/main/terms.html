@@ -1,7 +1,115 @@
 {% extends "base.html" %}
 {% block title %}Conditions d’utilisation{% endblock %}
 {% block content %}
-<h1>Conditions d’utilisation</h1>
-<p>Les prévisions financières et fiscales sont <strong>indicatives</strong> et ne constituent pas un conseil comptable ou fiscal. L’utilisateur est responsable du respect de ses obligations légales et professionnelles.</p>
-<p><a href="{{ url_for('main.index') }}">Retour</a></p>
+<div class="card p-4 p-md-5">
+  <h1 class="h3 mb-3">Conditions générales d'utilisation (CGU)</h1>
+  <p class="text-muted">Version en vigueur : 31/03/2026</p>
+  <p>
+    Les présentes conditions encadrent l'accès et l'utilisation de la plateforme Persona. Toute utilisation
+    implique l'acceptation pleine et entière des présentes CGU.
+  </p>
+
+  <h2 class="h5 mt-4">1. Objet du service</h2>
+  <p>
+    Persona est une application de gestion de la relation coach/patient, incluant notamment la gestion des comptes,
+    la planification des séances, la gestion documentaire (contrats, factures), des fonctions de communication et,
+    le cas échéant, l'initiation de paiements en ligne via Stripe Connect.
+  </p>
+
+  <h2 class="h5 mt-4">2. Accès au service</h2>
+  <ul>
+    <li>L'accès est réservé aux utilisateurs autorisés disposant d'identifiants personnels.</li>
+    <li>Chaque utilisateur est responsable de la confidentialité de ses identifiants.</li>
+    <li>Toute utilisation frauduleuse ou non autorisée doit être signalée sans délai.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">3. Rôles et responsabilités</h2>
+  <ul>
+    <li>Administrateur : création et supervision des comptes coachs.</li>
+    <li>Coach : gestion des patients, séances, documents et communications associées.</li>
+    <li>Patient : consultation des informations qui lui sont accessibles et réservation selon droits.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">4. Obligations des utilisateurs</h2>
+  <ul>
+    <li>Fournir des informations exactes et à jour.</li>
+    <li>Utiliser le service de manière loyale, licite et conforme à sa finalité.</li>
+    <li>Ne pas porter atteinte à la sécurité, l'intégrité ou la disponibilité du service.</li>
+    <li>Respecter les droits des tiers et la confidentialité des données traitées.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">5. Données personnelles et confidentialité</h2>
+  <p>
+    Les traitements de données personnelles sont réalisés conformément à la
+    <a href="{{ url_for('main.privacy') }}">Politique de confidentialité</a>. L'utilisateur s'engage à respecter
+    ses propres obligations légales en matière de protection des données.
+  </p>
+
+  <h2 class="h5 mt-4">5 bis. Paiements et Stripe Connect</h2>
+  <ul>
+    <li>Les coachs peuvent connecter leur compte Stripe professionnel via Stripe Connect depuis l'application.</li>
+    <li>Dans le modèle mis en place (direct charges), les fonds des patients sont encaissés directement sur le compte Stripe du coach.</li>
+    <li>La plateforme n'est pas destinée à encaisser les fonds finaux des prestations pour le compte du coach dans ce mode de fonctionnement.</li>
+    <li>Le coach demeure responsable de ses obligations légales, fiscales, comptables et réglementaires liées à son activité et à ses encaissements.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">6. Disponibilité et maintenance</h2>
+  <p>
+    Le service est fourni "en l'état" avec une obligation de moyens. Des interruptions peuvent intervenir pour
+    maintenance, sécurité, évolution technique ou en cas de force majeure.
+  </p>
+
+  <h2 class="h5 mt-4">7. Contenus et documents</h2>
+  <ul>
+    <li>Les utilisateurs restent responsables des contenus et documents qu'ils importent ou diffusent.</li>
+    <li>Ils garantissent détenir les droits nécessaires sur ces contenus.</li>
+    <li>Tout contenu illicite peut être suspendu ou supprimé sans préavis.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">8. Propriété intellectuelle</h2>
+  <p>
+    La plateforme, son code, son interface et ses éléments graphiques sont protégés par les droits de propriété
+    intellectuelle applicables. Sauf autorisation écrite, toute reproduction ou réutilisation est interdite.
+  </p>
+
+  <h2 class="h5 mt-4">9. Limitation de responsabilité</h2>
+  <ul>
+    <li>Le service ne constitue pas un conseil juridique, fiscal, comptable ou médical.</li>
+    <li>Les estimations, prévisions et recommandations éventuelles sont fournies à titre indicatif.</li>
+    <li>L'utilisateur demeure seul responsable de ses décisions et obligations professionnelles et légales.</li>
+  </ul>
+
+  <h2 class="h5 mt-4">9 bis. Facturation plateforme</h2>
+  <p>
+    Pour l'exécution du contrat, la plateforme peut calculer et afficher au compte administrateur des indicateurs
+    mensuels de chiffre d'affaires encaissé par coach (notamment paiements Stripe confirmés et paiements marqués
+    comme encaissés dans l'application), afin de permettre la facturation des services de la plateforme.
+  </p>
+  <p>
+    Ces indicateurs ont une finalité de gestion et de facturation interne de la plateforme et ne se substituent pas
+    aux obligations comptables et déclaratives propres à chaque coach.
+  </p>
+
+  <h2 class="h5 mt-4">10. Sécurité et suspension</h2>
+  <p>
+    En cas de manquement grave, d'usage abusif, de risque de sécurité ou d'obligation légale, l'accès au service
+    peut être suspendu ou restreint de manière temporaire ou définitive.
+  </p>
+
+  <h2 class="h5 mt-4">11. Modification des CGU</h2>
+  <p>
+    Les CGU peuvent évoluer à tout moment pour tenir compte des changements légaux, techniques ou fonctionnels.
+    La version publiée sur cette page fait foi.
+  </p>
+
+  <h2 class="h5 mt-4">12. Droit applicable et juridiction</h2>
+  <p>
+    Les présentes CGU sont soumises au droit français. À défaut de résolution amiable, tout litige relève des
+    juridictions matériellement et territorialement compétentes.
+  </p>
+
+  <div class="mt-4">
+    <a class="btn btn-outline-primary" href="{{ url_for('main.index') }}">Retour à l'accueil</a>
+  </div>
+</div>
 {% endblock %}

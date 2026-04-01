@@ -2,10 +2,14 @@ services:
   - type: web
     name: persona-app
     env: python
-    plan: free
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
     healthCheckPath: /auth/login
+    disk:
+      name: persona-storage
+      mountPath: /opt/render/project/src/app/static/uploads
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
@@ -17,15 +21,83 @@ services:
           property: connectionString
       - key: SESSION_DAYS
         value: 7
+      - key: SESSION_COOKIE_SECURE
+        value: true
       - key: ADMIN_USERNAME
         value: adminpersona
       - key: ADMIN_EMAIL
         value: adminpersona@persona.local
       - key: ADMIN_PASSWORD
         sync: false
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        value: 587
+      - key: MAIL_USE_TLS
+        value: true
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_CONNECT_REFRESH_URL
+        sync: false
+      - key: STRIPE_CONNECT_RETURN_URL
+        sync: false
     autoDeploy: true
     preDeployCommand: python init_app.py
 
+  - type: cron
+    name: persona-reminders
+    env: python
+    plan: starter
+    schedule: "0 7 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m flask --app wsgi:app send-reminders
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: persona-db
+          property: connectionString
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+  - type: cron
+    name: persona-gdpr-purge
+    env: python
+    plan: starter
+    schedule: "15 3 * * 0"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m flask --app wsgi:app purge-data
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: DATABASE_URL
+        fromDatabase:
+          name: persona-db
+          property: connectionString
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+
 databases:
   - name: persona-db
-    plan: free
+    plan: starter

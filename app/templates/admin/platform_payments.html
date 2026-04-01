@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Admin — Paiements plateforme{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">AdminPersona — Configuration Stripe plateforme</h1>
+  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Retour admin</a>
+</div>
+
+<div class="card p-4">
+  <p class="text-muted">
+    Cette configuration est commune à la plateforme et sert à piloter Stripe Connect.
+    Les fonds restent encaissés sur le compte Stripe de chaque coach connecté (direct charges).
+  </p>
+  <div class="mb-3 small">
+    Secret key configurée: <strong>{{ "oui" if has_secret else "non" }}</strong> ·
+    Webhook secret configuré: <strong>{{ "oui" if has_webhook else "non" }}</strong>
+  </div>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-6 mb-3">{{ form.stripe_secret_key.label(class="form-label") }}{{ form.stripe_secret_key(class="form-control", placeholder="Laisser vide pour conserver") }}</div>
+      <div class="col-md-6 mb-3">{{ form.stripe_publishable_key.label(class="form-label") }}{{ form.stripe_publishable_key(class="form-control") }}</div>
+      <div class="col-md-6 mb-3">{{ form.stripe_webhook_secret.label(class="form-label") }}{{ form.stripe_webhook_secret(class="form-control", placeholder="Laisser vide pour conserver") }}</div>
+      <div class="col-md-6 mb-3">{{ form.stripe_connect_refresh_url.label(class="form-label") }}{{ form.stripe_connect_refresh_url(class="form-control", placeholder="https://.../coach/payments") }}</div>
+      <div class="col-md-6 mb-3">{{ form.stripe_connect_return_url.label(class="form-label") }}{{ form.stripe_connect_return_url(class="form-control", placeholder="https://.../coach/payments") }}</div>
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+</div>
+{% endblock %}
