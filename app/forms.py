@@ -14,7 +14,13 @@ class CoachRegisterForm(FlaskForm):
     name = StringField("Nom complet", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired(), Email()])
     password = PasswordField("Mot de passe", validators=[DataRequired()])
-    submit = SubmitField("Créer le compte coach")
+    professional_type = SelectField(
+        "Type de professionnel",
+        choices=[("coach", "Coach"), ("psychologue", "Psychologue")],
+        validators=[DataRequired()],
+        default="coach",
+    )
+    submit = SubmitField("Créer le compte professionnel")
 
 
 class ResetCoachPasswordForm(FlaskForm):

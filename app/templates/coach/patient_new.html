@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Nouveau patient{% endblock %}
+{% block title %}Nouveau {{ terms.followed_singular }}{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Nouveau patient</h1>
+<h1 class="h3 mb-4">Nouveau {{ terms.followed_singular }}</h1>
 <div class="card p-4">
   <form method="post">
     {{ form.hidden_tag() }}

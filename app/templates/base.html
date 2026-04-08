@@ -30,7 +30,7 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.dashboard') }}">Administration</a></li>
           {% elif current_user.is_authenticated and current_user.is_coach() %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.dashboard') }}">Tableau de bord</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.patients_list') }}">Patients</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.patients_list') }}">{{ terms.followed_plural_title }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.slots') }}">Planning</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.settings') }}">Paramètres</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.payments_settings') }}">Paiements</a></li>

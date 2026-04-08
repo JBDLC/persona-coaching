@@ -57,11 +57,12 @@ def dashboard():
             User.id,
             User.name,
             User.is_suspended,
+            User.professional_type,
             func.count(Patient.id).label("patients_count"),
         )
         .outerjoin(Patient, Patient.coach_id == User.id)
         .filter(User.role == "coach")
-        .group_by(User.id, User.name, User.is_suspended)
+        .group_by(User.id, User.name, User.is_suspended, User.professional_type)
         .order_by(User.created_at.desc())
         .all()
     )
@@ -154,6 +155,7 @@ def create_coach():
         email=email,
         name=create_form.name.data.strip(),
         role="coach",
+        professional_type=create_form.professional_type.data or "coach",
     )
     u.set_password(create_form.password.data)
     db.session.add(u)
@@ -195,6 +197,21 @@ def toggle_suspension(coach_id):
         flash("Coach suspendu. Ses patients n'ont plus accès.", "warning")
     else:
         flash("Coach réactivé. Ses patients ont de nouveau accès.", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
+@bp.route("/coach/<int:coach_id>/professional-type", methods=["POST"])
+@login_required
+@admin_required
+def update_professional_type(coach_id):
+    coach = User.query.filter_by(id=coach_id, role="coach").first_or_404()
+    new_type = (request.form.get("professional_type") or "").strip().lower()
+    if new_type not in ("coach", "psychologue"):
+        flash("Type de professionnel invalide.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    coach.professional_type = new_type
+    db.session.commit()
+    flash(f"Type mis à jour pour {coach.name}.", "success")
     return redirect(url_for("admin.dashboard"))
 
 
@@ -245,6 +262,7 @@ def _user_export_payload(user: User) -> dict:
             "email": user.email,
             "name": user.name,
             "role": user.role,
+            "professional_type": user.professional_type,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "is_suspended": bool(user.is_suspended),
             "legal_hold": bool(user.legal_hold),

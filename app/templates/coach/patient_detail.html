@@ -12,8 +12,8 @@
 </div>
 
 <div class="card p-3 mb-4">
-  <h2 class="h6 mb-2">Accès patient</h2>
-  <p class="text-muted small mb-2">Définir un mot de passe temporaire pour ce patient. Il sera obligé de le changer à sa prochaine connexion.</p>
+  <h2 class="h6 mb-2">Accès {{ terms.followed_singular }}</h2>
+  <p class="text-muted small mb-2">Définir un mot de passe temporaire pour ce {{ terms.followed_singular }}. Il sera obligé de le changer à sa prochaine connexion.</p>
   <form method="post" action="{{ url_for('coach.patient_reset_password', pid=patient.id) }}" class="row g-2 align-items-end">
     {{ reset_password_form.hidden_tag() }}
     <div class="col-md-6">

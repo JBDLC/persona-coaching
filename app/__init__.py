@@ -154,15 +154,41 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def coach_tz():
+        def _terms_for_kind(kind: str):
+            if kind == "psychologue":
+                return {
+                    "professional_singular": "psychologue",
+                    "professional_singular_title": "Psychologue",
+                    "professional_plural": "psychologues",
+                    "professional_plural_title": "Psychologues",
+                    "followed_singular": "patient",
+                    "followed_singular_title": "Patient",
+                    "followed_plural": "patients",
+                    "followed_plural_title": "Patients",
+                }
+            return {
+                "professional_singular": "coach",
+                "professional_singular_title": "Coach",
+                "professional_plural": "coachs",
+                "professional_plural_title": "Coachs",
+                "followed_singular": "client",
+                "followed_singular_title": "Client",
+                "followed_plural": "clients",
+                "followed_plural_title": "Clients",
+            }
+
         tz = "Europe/Paris"
+        terms = _terms_for_kind("coach")
         if current_user.is_authenticated:
             if current_user.is_coach() and current_user.settings:
                 tz = current_user.settings.timezone or tz
+                terms = _terms_for_kind(current_user.professional_kind())
             elif current_user.is_patient() and current_user.coach_id:
                 c = db.session.get(User, current_user.coach_id)
                 if c and c.settings:
                     tz = c.settings.timezone or tz
-        return {"coach_tz": tz}
+                    terms = _terms_for_kind(c.professional_kind())
+        return {"coach_tz": tz, "terms": terms}
 
     @app.before_request
     def force_logout_if_suspended():

@@ -17,6 +17,10 @@ def ensure_schema_updates():
     if "legal_hold" not in cols:
         db.session.execute(text("ALTER TABLE users ADD COLUMN legal_hold BOOLEAN DEFAULT FALSE"))
         db.session.commit()
+    if "professional_type" not in cols:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN professional_type VARCHAR(20) DEFAULT 'coach'"))
+        db.session.execute(text("UPDATE users SET professional_type = 'coach' WHERE professional_type IS NULL"))
+        db.session.commit()
 
     slots_cols = {c["name"] for c in inspector.get_columns("slots")}
     if "paid_at" not in slots_cols:

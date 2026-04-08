@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(255), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # admin | coach | patient
+    professional_type = db.Column(db.String(20), default="coach", nullable=False)  # coach | psychologue
     coach_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     is_suspended = db.Column(db.Boolean, default=False, nullable=False)
     legal_hold = db.Column(db.Boolean, default=False, nullable=False)
@@ -54,6 +55,10 @@ class User(UserMixin, db.Model):
 
     def is_admin(self) -> bool:
         return self.role == "admin"
+
+    def professional_kind(self) -> str:
+        kind = (self.professional_type or "coach").strip().lower()
+        return "psychologue" if kind == "psychologue" else "coach"
 
     @property
     def is_active(self) -> bool:

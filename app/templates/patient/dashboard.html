@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Espace patient{% endblock %}
+{% block title %}Espace {{ terms.followed_singular }}{% endblock %}
 {% block content %}
 <h1 class="h3 mb-2">Bonjour {{ patient.first_name }}</h1>
-<p class="text-muted">Coach : {{ coach.name if coach else '—' }}</p>
+<p class="text-muted">{{ terms.professional_singular_title }} : {{ coach.name if coach else '—' }}</p>
 {% if coach and coach_settings %}
 <div class="card p-3 mb-4">
   <div class="d-flex align-items-start gap-3">
     {% if coach_settings.profile_image_path %}
-    <img src="{{ url_for('static', filename='uploads/' ~ coach_settings.profile_image_path) }}" alt="Photo coach" style="width:72px;height:72px;object-fit:cover;border-radius:50%;">
+    <img src="{{ url_for('static', filename='uploads/' ~ coach_settings.profile_image_path) }}" alt="Photo {{ terms.professional_singular }}" style="width:72px;height:72px;object-fit:cover;border-radius:50%;">
     {% endif %}
     <div>
       <div class="fw-semibold">{{ coach.name }}</div>

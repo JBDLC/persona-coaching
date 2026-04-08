@@ -15,7 +15,7 @@
 <div class="admin-page">
   <div class="card p-4 mb-4 admin-hero">
     <h1 class="h4 mb-2">Administration Persona</h1>
-    <p class="text-muted mb-0">Gérez les coachs, leur accès et la sécurité des comptes depuis un espace plus lisible.</p>
+    <p class="text-muted mb-0">Gérez les professionnels, leur accès et la sécurité des comptes depuis un espace plus lisible.</p>
     <div class="mt-3">
       <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.gdpr_dashboard') }}">Conformité RGPD & sécurité</a>
       <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('admin.platform_payments') }}">Paiements plateforme (Stripe)</a>
@@ -27,7 +27,7 @@
   <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
       <div class="card p-3 admin-stat">
-        <div class="admin-stat-label">Coachs</div>
+        <div class="admin-stat-label">Professionnels</div>
         <div class="admin-stat-value">{{ stats.total }}</div>
       </div>
     </div>
@@ -45,7 +45,7 @@
     </div>
     <div class="col-6 col-lg-3">
       <div class="card p-3 admin-stat">
-        <div class="admin-stat-label">Patients liés</div>
+        <div class="admin-stat-label">Clients/Patients liés</div>
         <div class="admin-stat-value">{{ stats.patients }}</div>
       </div>
     </div>
@@ -53,7 +53,7 @@
 
   <div class="card p-4 mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <h2 class="h5 mb-0">CA encaissé mensuel par coach (pour facturation)</h2>
+      <h2 class="h5 mb-0">CA encaissé mensuel par professionnel (pour facturation)</h2>
       <form method="get" action="{{ url_for('admin.dashboard') }}" class="d-flex gap-2">
         <input type="number" min="2020" max="2100" name="year" value="{{ selected_year }}" class="form-control form-control-sm" style="width: 110px;">
         <select name="month" class="form-select form-select-sm" style="width: 130px;">
@@ -67,7 +67,7 @@
     <div class="table-responsive">
       <table class="table table-sm mb-0">
         <thead>
-          <tr><th>Coach</th><th class="text-end">CA encaissé (mois)</th></tr>
+          <tr><th>Professionnel</th><th class="text-end">CA encaissé (mois)</th></tr>
         </thead>
         <tbody>
           {% for row in monthly_billing_rows %}
@@ -90,14 +90,15 @@
   <div class="row g-4 align-items-start">
     <div class="col-xl-8">
       <div class="card p-4">
-        <h2 class="h5 mb-3">Coachs créés</h2>
+        <h2 class="h5 mb-3">Professionnels créés</h2>
         <div class="table-responsive">
           <table class="table table-sm align-middle bg-white admin-coaches-table mb-0">
             <thead>
               <tr>
-                <th>Coach</th>
+                <th>Professionnel</th>
+                <th>Type</th>
                 <th>Statut</th>
-                <th>Patients</th>
+                <th>Clients/Patients</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -105,6 +106,7 @@
               {% for coach in coaches %}
               <tr>
                 <td class="fw-semibold">{{ coach.name }}</td>
+                <td>{{ "Psychologue" if coach.professional_type == "psychologue" else "Coach" }}</td>
                 <td>
                   {% if coach.is_suspended %}
                   <span class="badge text-bg-warning">Suspendu</span>
@@ -114,6 +116,14 @@
                 </td>
                 <td>{{ coach.patients_count }}</td>
                 <td>
+                  <form method="post" action="{{ url_for('admin.update_professional_type', coach_id=coach.id) }}" class="d-flex gap-2 mb-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="professional_type" class="form-select form-select-sm">
+                      <option value="coach" {% if coach.professional_type != 'psychologue' %}selected{% endif %}>Coach</option>
+                      <option value="psychologue" {% if coach.professional_type == 'psychologue' %}selected{% endif %}>Psychologue</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Mettre à jour</button>
+                  </form>
                   <div class="admin-actions">
                     <form method="post" action="{{ url_for('admin.toggle_suspension', coach_id=coach.id) }}" class="d-inline">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -123,7 +133,7 @@
                       <button type="submit" class="btn btn-sm btn-outline-warning">Suspendre</button>
                       {% endif %}
                     </form>
-                    <form method="post" action="{{ url_for('admin.delete_coach', coach_id=coach.id) }}" class="d-inline" onsubmit="return confirm('Supprimer définitivement ce coach et tous ses clients ?');">
+                    <form method="post" action="{{ url_for('admin.delete_coach', coach_id=coach.id) }}" class="d-inline" onsubmit="return confirm('Supprimer définitivement ce professionnel et ses comptes rattachés ?');">
                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                       <button type="submit" class="btn btn-sm btn-outline-danger">Supprimer</button>
                     </form>
@@ -137,7 +147,7 @@
               </tr>
               {% else %}
               <tr>
-                <td colspan="4" class="text-muted">Aucun coach créé.</td>
+                <td colspan="5" class="text-muted">Aucun professionnel créé.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -148,12 +158,13 @@
 
     <div class="col-xl-4">
       <div class="card p-4 admin-create-card">
-        <h2 class="h5 mb-3">Créer un compte coach</h2>
+        <h2 class="h5 mb-3">Créer un compte professionnel</h2>
         <form method="post" action="{{ url_for('admin.create_coach') }}">
           {{ create_form.hidden_tag() }}
           <div class="mb-3">{{ create_form.name.label(class="form-label") }}{{ create_form.name(class="form-control") }}</div>
           <div class="mb-3">{{ create_form.email.label(class="form-label") }}{{ create_form.email(class="form-control") }}</div>
           <div class="mb-3">{{ create_form.password.label(class="form-label") }}{{ create_form.password(class="form-control") }}</div>
+          <div class="mb-3">{{ create_form.professional_type.label(class="form-label") }}{{ create_form.professional_type(class="form-select") }}</div>
           {{ create_form.submit(class="btn btn-primary w-100") }}
         </form>
       </div>

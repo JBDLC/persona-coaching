@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Alertes — Coach{% endblock %}
+{% block title %}Alertes — {{ terms.professional_singular_title }}{% endblock %}
 {% block content %}
-<h1 class="h3 mb-4">Alertes patients</h1>
+<h1 class="h3 mb-4">Alertes {{ terms.followed_plural }}</h1>
 <div class="card p-3">
   <div class="table-responsive">
     <table class="table table-sm mb-0">
-      <thead><tr><th>Date</th><th>Événement</th><th>Patient</th><th></th></tr></thead>
+      <thead><tr><th>Date</th><th>Événement</th><th>{{ terms.followed_singular_title }}</th><th></th></tr></thead>
       <tbody>
         {% for item in items %}
         <tr>

@@ -52,6 +52,11 @@ def _settings():
     return s
 
 
+def _followed_terms() -> tuple[str, str]:
+    singular = "patient" if _coach().professional_kind() == "psychologue" else "client"
+    return singular, f"{singular}s"
+
+
 @bp.route("/")
 @login_required
 @coach_required
@@ -272,6 +277,9 @@ def patients_list():
 @coach_required
 def patient_new():
     form = PatientCreateForm()
+    followed_singular, followed_plural = _followed_terms()
+    form.submit.label.text = f"Créer le {followed_singular}"
+    form.sessions_planned.label.text = f"Nombre de séances prévues ({followed_plural})"
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
         if User.query.filter_by(email=email).first():
@@ -298,7 +306,7 @@ def patient_new():
             db.session.add(p)
             db.session.commit()
             audit_log(_coach().id, _coach().id, "patient_created", "Patient", p.id, {"email": email})
-            flash("Patient créé. Il peut se connecter avec son email.", "success")
+            flash(f"{followed_singular.capitalize()} créé. Il peut se connecter avec son email.", "success")
             return redirect(url_for("coach.patient_detail", pid=p.id))
     return render_template("coach/patient_new.html", form=form)
 
@@ -341,6 +349,8 @@ def patient_edit(pid):
         hourly_rate_override=p.hourly_rate_override,
         active=p.active,
     )
+    followed_singular, followed_plural = _followed_terms()
+    form.sessions_planned.label.text = f"Séances prévues ({followed_plural})"
     if form.validate_on_submit():
         old = {"sessions_planned": p.sessions_planned, "hourly_rate": str(p.hourly_rate_override)}
         form.populate_obj(p)
@@ -354,7 +364,7 @@ def patient_edit(pid):
             p.id,
             {"old": old, "new": {"sessions_planned": p.sessions_planned}},
         )
-        flash("Fiche patient mise à jour.", "success")
+        flash(f"Fiche {followed_singular} mise à jour.", "success")
         return redirect(url_for("coach.patient_detail", pid=p.id))
     return render_template("coach/patient_edit.html", form=form, patient=p)
 
@@ -373,7 +383,11 @@ def patient_reset_password(pid):
     p.user.must_change_password = True
     db.session.commit()
     audit_log(_coach().id, _coach().id, "patient_password_reset", "Patient", p.id, {"patient_user_id": p.user.id})
-    flash("Mot de passe patient réinitialisé. Le patient devra le changer à la prochaine connexion.", "success")
+    followed_singular, _ = _followed_terms()
+    flash(
+        f"Mot de passe {followed_singular} réinitialisé. Le {followed_singular} devra le changer à la prochaine connexion.",
+        "success",
+    )
     return redirect(url_for("coach.patient_detail", pid=pid))
 
 
@@ -516,8 +530,9 @@ def slot_session(sid):
 @coach_required
 def slot_send_report(sid):
     slot = Slot.query.filter_by(id=sid, coach_id=_coach().id).first_or_404()
+    followed_singular, _ = _followed_terms()
     if not slot.patient_id or not slot.patient or not slot.patient.user:
-        flash("Aucun patient associé à ce créneau.", "danger")
+        flash(f"Aucun {followed_singular} associé à ce créneau.", "danger")
         return redirect(url_for("coach.slot_session", sid=sid))
     posted_notes = (request.form.get("notes") or "").strip()
     if posted_notes:
@@ -539,7 +554,7 @@ def slot_send_report(sid):
     if ok:
         audit_log(_coach().id, _coach().id, "session_report_emailed", "Slot", slot.id, {"patient_id": slot.patient.id})
         db.session.commit()
-        flash("Compte rendu envoyé au patient.", "success")
+        flash(f"Compte rendu envoyé au {followed_singular}.", "success")
     else:
         flash("Échec de l'envoi email. Vérifiez votre configuration SMTP.", "danger")
     return redirect(url_for("coach.slot_session", sid=sid))
