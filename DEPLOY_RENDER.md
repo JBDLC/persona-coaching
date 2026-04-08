@@ -45,6 +45,15 @@ Variables Stripe Connect (obligatoires pour les paiements):
 - `STRIPE_CONNECT_REFRESH_URL` (URL de retour si onboarding interrompu)
 - `STRIPE_CONNECT_RETURN_URL` (URL de retour après onboarding)
 
+Variables visio automatique Google Meet (optionnelles):
+
+- `meeting_auto_enabled` (gere via adminpersona, pas obligatoire en env)
+- `meeting_provider` (google_meet)
+- `google_oauth_client_id`
+- `google_oauth_client_secret`
+- `google_oauth_refresh_token`
+- `google_calendar_id` (ex: `primary`)
+
 Webhook Stripe à configurer:
 
 - Endpoint: `https://<ton-domaine>/stripe/webhook`

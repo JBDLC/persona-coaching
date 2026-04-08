@@ -13,6 +13,7 @@ from app.admin import bp
 from app.forms import (
     CoachRegisterForm,
     GdprRequestForm,
+    PlatformMeetingSettingsForm,
     PlatformSmtpSettingsForm,
     PlatformStripeSettingsForm,
     ResetCoachPasswordForm,
@@ -566,4 +567,36 @@ def platform_email():
         "admin/platform_email.html",
         form=form,
         has_password=bool(get_platform_setting("mail_password", decrypt=True) or current_app.config.get("MAIL_PASSWORD")),
+    )
+
+
+@bp.route("/platform-meeting", methods=["GET", "POST"])
+@login_required
+@admin_required
+def platform_meeting():
+    form = PlatformMeetingSettingsForm()
+    if form.validate_on_submit():
+        set_platform_setting("meeting_auto_enabled", "true" if form.enabled.data else "false", encrypt=False)
+        set_platform_setting("meeting_provider", form.provider.data, encrypt=False)
+        set_platform_setting("google_oauth_client_id", form.google_client_id.data, encrypt=False)
+        if (form.google_client_secret.data or "").strip():
+            set_platform_setting("google_oauth_client_secret", form.google_client_secret.data, encrypt=True)
+        if (form.google_refresh_token.data or "").strip():
+            set_platform_setting("google_oauth_refresh_token", form.google_refresh_token.data, encrypt=True)
+        set_platform_setting("google_calendar_id", form.google_calendar_id.data, encrypt=False)
+        db.session.commit()
+        flash("Configuration visio automatique enregistrée.", "success")
+        return redirect(url_for("admin.platform_meeting"))
+
+    if request.method == "GET":
+        form.enabled.data = str(get_platform_setting("meeting_auto_enabled") or "false").lower() in ("1", "true", "yes")
+        form.provider.data = (get_platform_setting("meeting_provider") or "google_meet").strip()
+        form.google_client_id.data = get_platform_setting("google_oauth_client_id") or ""
+        form.google_calendar_id.data = get_platform_setting("google_calendar_id") or "primary"
+
+    return render_template(
+        "admin/platform_meeting.html",
+        form=form,
+        has_client_secret=bool(get_platform_setting("google_oauth_client_secret", decrypt=True)),
+        has_refresh_token=bool(get_platform_setting("google_oauth_refresh_token", decrypt=True)),
     )

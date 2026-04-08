@@ -34,6 +34,12 @@ def ensure_schema_updates():
     if "meeting_link" not in slots_cols:
         db.session.execute(text("ALTER TABLE slots ADD COLUMN meeting_link VARCHAR(512)"))
         db.session.commit()
+    if "meeting_provider" not in slots_cols:
+        db.session.execute(text("ALTER TABLE slots ADD COLUMN meeting_provider VARCHAR(32)"))
+        db.session.commit()
+    if "meeting_event_id" not in slots_cols:
+        db.session.execute(text("ALTER TABLE slots ADD COLUMN meeting_event_id VARCHAR(255)"))
+        db.session.commit()
     if "invoice_file_path" not in slots_cols:
         db.session.execute(text("ALTER TABLE slots ADD COLUMN invoice_file_path VARCHAR(512)"))
         db.session.commit()

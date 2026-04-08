@@ -153,6 +153,8 @@ class Slot(db.Model):
     status = db.Column(db.String(20), default="available")  # available | booked | completed | cancelled
     notes = db.Column(db.Text)
     meeting_link = db.Column(db.String(512))
+    meeting_provider = db.Column(db.String(32))
+    meeting_event_id = db.Column(db.String(255))
     paid = db.Column(db.Boolean, default=False)
     paid_at = db.Column(db.DateTime)
     invoice_number = db.Column(db.String(64))

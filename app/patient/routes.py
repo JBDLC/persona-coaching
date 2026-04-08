@@ -11,6 +11,7 @@ from app.utils.booking import can_book_after_min_days, can_cancel_slot, last_ses
 from app.utils.datetime_parse import utc_naive_to_local_str
 from app.utils.decorators import patient_required
 from app.utils.email import send_booking_confirmation, send_coach_new_booking
+from app.utils.meeting_links import cancel_google_meet_event, create_google_meet_event, is_auto_meeting_enabled
 from app.utils.pdf import build_session_book_pdf
 from app.utils.stripe_connect import _require_stripe, _stripe_field, create_direct_checkout_session
 
@@ -341,6 +342,20 @@ def book():
             {"patient_id": p.id, "patient_name": p.display_name()},
         )
         db.session.commit()
+        if is_auto_meeting_enabled():
+            try:
+                event_id, link = create_google_meet_event(
+                    slot=slot,
+                    coach_name=coach.name,
+                    patient_name=p.display_name(),
+                )
+                slot.meeting_provider = "google_meet"
+                slot.meeting_event_id = event_id
+                slot.meeting_link = link
+                db.session.commit()
+            except Exception as exc:
+                current_app.logger.exception("Auto meeting link creation failed for slot %s", slot.id)
+                flash(f"RDV reserve, mais creation du lien visio impossible: {exc}", "warning")
         slot_str = utc_naive_to_local_str(slot.start_utc, s.timezone)
         if s.email_notifications:
             if s.notify_booking_patient:
@@ -373,6 +388,15 @@ def cancel_slot(sid):
     if not ok:
         flash(msg or "Annulation refusée.", "danger")
         return redirect(url_for("patient.sessions"))
+    if slot.meeting_provider == "google_meet" and slot.meeting_event_id:
+        try:
+            cancel_google_meet_event(slot.meeting_event_id)
+        except Exception as exc:
+            current_app.logger.exception("Auto meeting link cancellation failed for slot %s", slot.id)
+            flash(f"Lien visio non supprime automatiquement: {exc}", "warning")
+    slot.meeting_link = None
+    slot.meeting_provider = None
+    slot.meeting_event_id = None
     slot.patient_id = None
     slot.status = "available"
     slot.cancelled_at = datetime.now(timezone.utc).replace(tzinfo=None)

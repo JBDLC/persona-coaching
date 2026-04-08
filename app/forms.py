@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import BooleanField, DecimalField, IntegerField, PasswordField, StringField, SubmitField, TextAreaField
+from wtforms import BooleanField, DecimalField, IntegerField, PasswordField, SelectField, StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, URL
 
 
@@ -130,3 +130,17 @@ class PlatformSmtpSettingsForm(FlaskForm):
     mail_password = PasswordField("Mot de passe SMTP global", validators=[Optional()])
     mail_default_sender = StringField("Expéditeur global (email)", validators=[Optional(), Email()])
     submit = SubmitField("Enregistrer la configuration SMTP globale")
+
+
+class PlatformMeetingSettingsForm(FlaskForm):
+    enabled = BooleanField("Activer la création automatique de lien visio")
+    provider = SelectField(
+        "Plateforme visio",
+        choices=[("google_meet", "Google Meet")],
+        validators=[DataRequired()],
+    )
+    google_client_id = StringField("Google OAuth Client ID", validators=[Optional()])
+    google_client_secret = PasswordField("Google OAuth Client Secret", validators=[Optional()])
+    google_refresh_token = PasswordField("Google OAuth Refresh Token", validators=[Optional()])
+    google_calendar_id = StringField("Google Calendar ID", validators=[Optional()])
+    submit = SubmitField("Enregistrer la configuration visio")
