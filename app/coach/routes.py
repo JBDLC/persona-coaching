@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.coach import bp
 from app.forms import (
+    CoachPackForm,
     CoachSettingsForm,
     ContractUploadForm,
     PatientCreateForm,
@@ -21,7 +22,7 @@ from app.forms import (
     SessionNotesForm,
     SlotForm,
 )
-from app.models import AuditLog, ContractVersion, Patient, Slot, User, audit_log
+from app.models import AuditLog, CoachPack, ContractVersion, Patient, PatientPack, Slot, User, audit_log
 from app.utils.datetime_parse import local_input_to_utc_naive, utc_naive_to_local_str
 from app.utils.decorators import coach_required
 from app.utils.email import (
@@ -217,6 +218,47 @@ def payments_refresh():
         current_app.logger.exception("Stripe refresh failed")
         flash(f"Échec de synchronisation Stripe: {exc}", "danger")
     return redirect(url_for("coach.payments_settings"))
+
+
+@bp.route("/packs", methods=["GET", "POST"])
+@login_required
+@coach_required
+def packs():
+    form = CoachPackForm()
+    if form.validate_on_submit():
+        pack = CoachPack(
+            coach_id=_coach().id,
+            name=(form.name.data or "").strip(),
+            amount_eur=form.amount_eur.data,
+            hours_total=form.hours_total.data,
+            validity_days=form.validity_days.data or 365,
+            is_active=True,
+        )
+        db.session.add(pack)
+        db.session.commit()
+        flash("Pack créé.", "success")
+        return redirect(url_for("coach.packs"))
+    rows = CoachPack.query.filter_by(coach_id=_coach().id).order_by(CoachPack.created_at.desc()).all()
+    purchase_counts = {}
+    for p in rows:
+        purchase_counts[p.id] = (
+            PatientPack.query.filter_by(coach_pack_id=p.id, purchase_status="succeeded")
+            .with_entities(db.func.count())
+            .scalar()
+            or 0
+        )
+    return render_template("coach/packs.html", form=form, packs=rows, purchase_counts=purchase_counts)
+
+
+@bp.route("/packs/<int:pack_id>/toggle", methods=["POST"])
+@login_required
+@coach_required
+def pack_toggle(pack_id):
+    pack = CoachPack.query.filter_by(id=pack_id, coach_id=_coach().id).first_or_404()
+    pack.is_active = not bool(pack.is_active)
+    db.session.commit()
+    flash("Pack mis à jour.", "success")
+    return redirect(url_for("coach.packs"))
 
 
 @bp.route("/alerts")
@@ -501,8 +543,13 @@ def slot_session(sid):
         slot.paid = form.paid.data
         if not old_paid and slot.paid:
             slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            if slot.paid_source != "pack":
+                slot.paid_source = "session"
         if old_paid and not slot.paid:
             slot.paid_at = None
+            slot.paid_source = "session"
+            slot.patient_pack_id = None
+            slot.pack_hours_used = None
         slot.invoice_number = form.invoice_number.data.strip() or None
         if form.mark_completed.data:
             slot.status = "completed"

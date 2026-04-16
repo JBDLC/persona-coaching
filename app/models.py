@@ -161,7 +161,10 @@ class Slot(db.Model):
     meeting_provider = db.Column(db.String(32))
     meeting_event_id = db.Column(db.String(255))
     paid = db.Column(db.Boolean, default=False)
+    paid_source = db.Column(db.String(24), default="session")  # session | pack
     paid_at = db.Column(db.DateTime)
+    patient_pack_id = db.Column(db.Integer, db.ForeignKey("patient_packs.id"), index=True)
+    pack_hours_used = db.Column(db.Numeric(6, 2))
     invoice_number = db.Column(db.String(64))
     invoice_file_path = db.Column(db.String(512))
     invoice_uploaded_at = db.Column(db.DateTime)
@@ -174,6 +177,7 @@ class Slot(db.Model):
 
     coach = db.relationship("User", foreign_keys=[coach_id])
     patient = db.relationship("Patient", back_populates="slots", foreign_keys=[patient_id])
+    patient_pack = db.relationship("PatientPack", foreign_keys=[patient_pack_id])
 
     def duration_hours(self) -> float:
         delta = self.end_utc - self.start_utc
@@ -247,6 +251,47 @@ class PaymentTransaction(db.Model):
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     slot = db.relationship("Slot", foreign_keys=[slot_id])
+
+
+class CoachPack(db.Model):
+    __tablename__ = "coach_packs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    name = db.Column(db.String(120), nullable=False)
+    amount_eur = db.Column(db.Numeric(10, 2), nullable=False)
+    hours_total = db.Column(db.Numeric(6, 2), nullable=False)
+    validity_days = db.Column(db.Integer, default=365, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    coach = db.relationship("User", foreign_keys=[coach_id])
+
+
+class PatientPack(db.Model):
+    __tablename__ = "patient_packs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    coach_pack_id = db.Column(db.Integer, db.ForeignKey("coach_packs.id"), nullable=False, index=True)
+    coach_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey("patients.id"), nullable=False, index=True)
+    purchased_hours = db.Column(db.Numeric(6, 2), nullable=False)
+    consumed_hours = db.Column(db.Numeric(6, 2), default=0, nullable=False)
+    amount_paid_eur = db.Column(db.Numeric(10, 2), nullable=False)
+    valid_until = db.Column(db.DateTime, nullable=False, index=True)
+    status = db.Column(db.String(20), default="active", nullable=False)  # active | expired | cancelled
+    stripe_checkout_session_id = db.Column(db.String(128), index=True)
+    stripe_payment_intent_id = db.Column(db.String(128), index=True)
+    purchase_status = db.Column(db.String(24), default="pending", nullable=False)  # pending | succeeded | failed | canceled
+    paid_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=utcnow)
+
+    coach_pack = db.relationship("CoachPack", foreign_keys=[coach_pack_id])
+    patient = db.relationship("Patient", foreign_keys=[patient_id])
+
+    def remaining_hours(self) -> float:
+        remaining = float(self.purchased_hours or 0) - float(self.consumed_hours or 0)
+        return max(0.0, round(remaining, 2))
 
 
 class PlatformSetting(db.Model):

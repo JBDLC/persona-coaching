@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Packs — {{ terms.professional_singular_title }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Packs</h1>
+</div>
+
+<div class="card p-4 mb-4">
+  <h2 class="h5 mb-3">Créer un pack</h2>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row g-3">
+      <div class="col-md-4">{{ form.name.label(class="form-label") }}{{ form.name(class="form-control") }}</div>
+      <div class="col-md-2">{{ form.amount_eur.label(class="form-label") }}{{ form.amount_eur(class="form-control") }}</div>
+      <div class="col-md-2">{{ form.hours_total.label(class="form-label") }}{{ form.hours_total(class="form-control") }}</div>
+      <div class="col-md-2">{{ form.validity_days.label(class="form-label") }}{{ form.validity_days(class="form-control") }}</div>
+      <div class="col-md-2 d-flex align-items-end">{{ form.submit(class="btn btn-primary w-100") }}</div>
+    </div>
+  </form>
+</div>
+
+<div class="card p-4">
+  <h2 class="h5 mb-3">Packs existants</h2>
+  <div class="table-responsive">
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Pack</th><th>Montant</th><th>Heures</th><th>Validité</th><th>Achats</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+        {% for p in packs %}
+        <tr>
+          <td>{{ p.name }}</td>
+          <td>{{ '%.2f'|format(p.amount_eur|float) }} €</td>
+          <td>{{ '%.2f'|format(p.hours_total|float) }} h</td>
+          <td>{{ p.validity_days }} jours</td>
+          <td>{{ purchase_counts.get(p.id, 0) }}</td>
+          <td>{% if p.is_active %}<span class="badge text-bg-success">Actif</span>{% else %}<span class="badge text-bg-secondary">Inactif</span>{% endif %}</td>
+          <td>
+            <form method="post" action="{{ url_for('coach.pack_toggle', pack_id=p.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-primary" type="submit">{% if p.is_active %}Désactiver{% else %}Activer{% endif %}</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-muted">Aucun pack pour le moment.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

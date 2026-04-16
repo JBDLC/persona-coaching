@@ -44,6 +44,16 @@ def ensure_schema_updates():
     if "meeting_event_id" not in slots_cols:
         db.session.execute(text("ALTER TABLE slots ADD COLUMN meeting_event_id VARCHAR(255)"))
         db.session.commit()
+    if "paid_source" not in slots_cols:
+        db.session.execute(text("ALTER TABLE slots ADD COLUMN paid_source VARCHAR(24) DEFAULT 'session'"))
+        db.session.execute(text("UPDATE slots SET paid_source = 'session' WHERE paid_source IS NULL"))
+        db.session.commit()
+    if "patient_pack_id" not in slots_cols:
+        db.session.execute(text("ALTER TABLE slots ADD COLUMN patient_pack_id INTEGER"))
+        db.session.commit()
+    if "pack_hours_used" not in slots_cols:
+        db.session.execute(text("ALTER TABLE slots ADD COLUMN pack_hours_used NUMERIC(6,2)"))
+        db.session.commit()
     if "invoice_file_path" not in slots_cols:
         db.session.execute(text("ALTER TABLE slots ADD COLUMN invoice_file_path VARCHAR(512)"))
         db.session.commit()
@@ -169,6 +179,48 @@ def ensure_schema_updates():
                     key VARCHAR(80) PRIMARY KEY,
                     value TEXT,
                     updated_at DATETIME
+                )
+                """
+            )
+        )
+        db.session.commit()
+    if "coach_packs" not in existing_tables:
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE coach_packs (
+                    id INTEGER PRIMARY KEY,
+                    coach_id INTEGER NOT NULL,
+                    name VARCHAR(120) NOT NULL,
+                    amount_eur NUMERIC(10,2) NOT NULL,
+                    hours_total NUMERIC(6,2) NOT NULL,
+                    validity_days INTEGER NOT NULL DEFAULT 365,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at DATETIME
+                )
+                """
+            )
+        )
+        db.session.commit()
+    if "patient_packs" not in existing_tables:
+        db.session.execute(
+            text(
+                """
+                CREATE TABLE patient_packs (
+                    id INTEGER PRIMARY KEY,
+                    coach_pack_id INTEGER NOT NULL,
+                    coach_id INTEGER NOT NULL,
+                    patient_id INTEGER NOT NULL,
+                    purchased_hours NUMERIC(6,2) NOT NULL,
+                    consumed_hours NUMERIC(6,2) NOT NULL DEFAULT 0,
+                    amount_paid_eur NUMERIC(10,2) NOT NULL,
+                    valid_until DATETIME NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    stripe_checkout_session_id VARCHAR(128),
+                    stripe_payment_intent_id VARCHAR(128),
+                    purchase_status VARCHAR(24) NOT NULL DEFAULT 'pending',
+                    paid_at DATETIME,
+                    created_at DATETIME
                 )
                 """
             )

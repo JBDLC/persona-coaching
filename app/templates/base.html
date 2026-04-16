@@ -33,11 +33,13 @@
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.patients_list') }}">{{ terms.followed_plural_title }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.slots') }}">Planning</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.settings') }}">Paramètres</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.packs') }}">Packs</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.payments_settings') }}">Paiements</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('coach.audit') }}">Journal</a></li>
           {% elif current_user.is_authenticated and current_user.is_patient() %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.dashboard') }}">Accueil</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.sessions') }}">Mes séances</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.packs') }}">Mes packs</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.book') }}">Réserver</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('patient.contract') }}">Contrat</a></li>
           {% else %}

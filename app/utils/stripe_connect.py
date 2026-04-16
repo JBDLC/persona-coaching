@@ -102,7 +102,15 @@ def sync_account_state(settings: CoachSettings):
     settings.stripe_last_synced_at = datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def create_direct_checkout_session(*, stripe_account_id: str, amount_cents: int, success_url: str, cancel_url: str, metadata: dict):
+def create_direct_checkout_session(
+    *,
+    stripe_account_id: str,
+    amount_cents: int,
+    success_url: str,
+    cancel_url: str,
+    metadata: dict,
+    product_name: str = "Séance coaching",
+):
     sdk = _require_stripe()
     session = sdk.checkout.Session.create(
         mode="payment",
@@ -112,7 +120,7 @@ def create_direct_checkout_session(*, stripe_account_id: str, amount_cents: int,
                 "price_data": {
                     "currency": "eur",
                     "unit_amount": amount_cents,
-                    "product_data": {"name": "Séance coaching"},
+                    "product_data": {"name": product_name},
                 },
                 "quantity": 1,
             }

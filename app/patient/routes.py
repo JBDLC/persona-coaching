@@ -1,11 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from flask import abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.models import ContractVersion, PaymentTransaction, Patient, Slot, audit_log
+from app.models import CoachPack, ContractVersion, PatientPack, PaymentTransaction, Patient, Slot, audit_log
 from app.patient import bp
 from app.utils.booking import can_book_after_min_days, can_cancel_slot, last_session_end_utc
 from app.utils.datetime_parse import utc_naive_to_local_str
@@ -72,6 +72,7 @@ def _sync_pending_payments_for_patient(patient: Patient):
                 slot.paid = True
                 if not slot.paid_at:
                     slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                slot.paid_source = "session"
                 slot.stripe_payment_status = "succeeded"
                 slot.stripe_checkout_session_id = tx.stripe_checkout_session_id
                 slot.stripe_payment_intent_id = _stripe_field(cs, "payment_intent")
@@ -83,6 +84,25 @@ def _sync_pending_payments_for_patient(patient: Patient):
     if synced:
         db.session.commit()
     return synced
+
+
+def _active_pack_for_slot(patient: Patient, slot: Slot):
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    packs = (
+        PatientPack.query.filter(
+            PatientPack.patient_id == patient.id,
+            PatientPack.purchase_status == "succeeded",
+            PatientPack.status == "active",
+            PatientPack.valid_until >= now,
+        )
+        .order_by(PatientPack.valid_until.asc(), PatientPack.created_at.asc())
+        .all()
+    )
+    needed = round(slot.duration_hours(), 2)
+    for pack in packs:
+        if pack.remaining_hours() >= needed:
+            return pack, needed
+    return None, needed
 
 
 @bp.route("/")
@@ -185,7 +205,12 @@ def sessions():
         .order_by(Slot.start_utc.desc())
         .all()
     )
-    return render_template("patient/sessions.html", patient=p, slots=slots)
+    packs = (
+        PatientPack.query.filter_by(patient_id=p.id)
+        .order_by(PatientPack.created_at.desc())
+        .all()
+    )
+    return render_template("patient/sessions.html", patient=p, slots=slots, patient_packs=packs)
 
 
 @bp.route("/sessions/<int:sid>/invoice/download")
@@ -272,6 +297,7 @@ def payment_checkout_session(sid):
     slot.stripe_checkout_session_id = _stripe_field(session, "id")
     slot.stripe_payment_intent_id = _stripe_field(session, "payment_intent")
     slot.stripe_payment_status = "pending"
+    slot.paid_source = "session"
     db.session.add(tx)
     db.session.commit()
     if request.accept_mimetypes.best != "application/json":
@@ -333,6 +359,19 @@ def book():
             return redirect(url_for("patient.book"))
         slot.patient_id = p.id
         slot.status = "booked"
+        pack_used, used_hours = _active_pack_for_slot(p, slot)
+        if pack_used:
+            pack_used.consumed_hours = round(float(pack_used.consumed_hours or 0) + used_hours, 2)
+            slot.paid = True
+            slot.paid_source = "pack"
+            slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            slot.patient_pack_id = pack_used.id
+            slot.pack_hours_used = used_hours
+        else:
+            slot.paid = False
+            slot.paid_source = "session"
+            slot.patient_pack_id = None
+            slot.pack_hours_used = None
         audit_log(
             coach.id,
             current_user.id,
@@ -388,6 +427,11 @@ def cancel_slot(sid):
     if not ok:
         flash(msg or "Annulation refusée.", "danger")
         return redirect(url_for("patient.sessions"))
+    if slot.patient_pack_id and slot.pack_hours_used:
+        pack = PatientPack.query.filter_by(id=slot.patient_pack_id, patient_id=p.id).first()
+        if pack and pack.purchase_status == "succeeded":
+            new_consumed = float(pack.consumed_hours or 0) - float(slot.pack_hours_used or 0)
+            pack.consumed_hours = round(max(0.0, new_consumed), 2)
     if slot.meeting_provider == "google_meet" and slot.meeting_event_id:
         try:
             cancel_google_meet_event(slot.meeting_event_id)
@@ -397,6 +441,11 @@ def cancel_slot(sid):
     slot.meeting_link = None
     slot.meeting_provider = None
     slot.meeting_event_id = None
+    slot.paid = False
+    slot.paid_source = "session"
+    slot.paid_at = None
+    slot.patient_pack_id = None
+    slot.pack_hours_used = None
     slot.patient_id = None
     slot.status = "available"
     slot.cancelled_at = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -411,6 +460,86 @@ def cancel_slot(sid):
     db.session.commit()
     flash("Réservation annulée. Le créneau est à nouveau libre.", "info")
     return redirect(url_for("patient.sessions"))
+
+
+@bp.route("/packs")
+@login_required
+@patient_required
+def packs():
+    p = _patient_profile()
+    coach = _coach_user()
+    if not coach or not coach.settings:
+        abort(500)
+    payment_query = request.args.get("payment")
+    if payment_query == "success":
+        flash("Paiement du pack confirmé ou en cours de confirmation.", "success")
+    elif payment_query == "cancel":
+        flash("Achat du pack annulé.", "warning")
+    available_packs = (
+        CoachPack.query.filter_by(coach_id=coach.id, is_active=True)
+        .order_by(CoachPack.created_at.desc())
+        .all()
+    )
+    owned_packs = (
+        PatientPack.query.filter_by(patient_id=p.id)
+        .order_by(PatientPack.created_at.desc())
+        .all()
+    )
+    return render_template("patient/packs.html", available_packs=available_packs, owned_packs=owned_packs, coach=coach)
+
+
+@bp.route("/packs/<int:pack_id>/checkout", methods=["POST"])
+@login_required
+@patient_required
+def pack_checkout(pack_id):
+    p = _patient_profile()
+    coach = _coach_user()
+    if not coach or not coach.settings:
+        flash("Coach introuvable.", "danger")
+        return redirect(url_for("patient.packs"))
+    settings = coach.settings
+    if not settings.stripe_account_id or not settings.stripe_charges_enabled:
+        flash("Le professionnel n'est pas prêt à encaisser en ligne.", "warning")
+        return redirect(url_for("patient.packs"))
+    pack = CoachPack.query.filter_by(id=pack_id, coach_id=coach.id, is_active=True).first_or_404()
+    amount_cents = int(round(float(pack.amount_eur) * 100))
+    success_url = url_for("patient.packs", _external=True) + "?payment=success"
+    cancel_url = url_for("patient.packs", _external=True) + "?payment=cancel"
+    metadata = {
+        "payment_type": "pack",
+        "coach_pack_id": str(pack.id),
+        "coach_id": str(coach.id),
+        "patient_user_id": str(current_user.id),
+    }
+    try:
+        session = create_direct_checkout_session(
+            stripe_account_id=settings.stripe_account_id,
+            amount_cents=amount_cents,
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata=metadata,
+            product_name=f"Pack {pack.name}",
+        )
+    except Exception as exc:
+        current_app.logger.exception("Pack checkout creation failed")
+        flash(f"Impossible d'initier l'achat du pack: {exc}", "danger")
+        return redirect(url_for("patient.packs"))
+
+    purchase = PatientPack(
+        coach_pack_id=pack.id,
+        coach_id=coach.id,
+        patient_id=p.id,
+        purchased_hours=pack.hours_total,
+        consumed_hours=0,
+        amount_paid_eur=pack.amount_eur,
+        valid_until=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=int(pack.validity_days or 365)),
+        purchase_status="pending",
+        stripe_checkout_session_id=_stripe_field(session, "id"),
+        stripe_payment_intent_id=_stripe_field(session, "payment_intent"),
+    )
+    db.session.add(purchase)
+    db.session.commit()
+    return redirect(_stripe_field(session, "url"))
 
 
 @bp.route("/report-book.pdf")

@@ -17,7 +17,17 @@
           {% endif %}
         </td>
         <td>{{ s.status }}</td>
-        <td>{% if s.paid %}Payée{% else %}Non payée{% endif %}</td>
+        <td>
+          {% if s.paid %}
+            {% if s.paid_source == 'pack' %}
+            Payée (pack)
+            {% else %}
+            Payée
+            {% endif %}
+          {% else %}
+          Non payée
+          {% endif %}
+        </td>
         <td>
           {% if s.invoice_file_path %}
           <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('patient.session_invoice_download', sid=s.id) }}">Télécharger</a>

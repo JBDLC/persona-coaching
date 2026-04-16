@@ -150,3 +150,11 @@ class PlatformMeetingSettingsForm(FlaskForm):
     google_refresh_token = PasswordField("Google OAuth Refresh Token", validators=[Optional()])
     google_calendar_id = StringField("Google Calendar ID", validators=[Optional()])
     submit = SubmitField("Enregistrer la configuration visio")
+
+
+class CoachPackForm(FlaskForm):
+    name = StringField("Nom du pack", validators=[DataRequired(), Length(max=120)])
+    amount_eur = DecimalField("Montant (€)", validators=[DataRequired(), NumberRange(min=0.01)])
+    hours_total = DecimalField("Nombre d'heures", validators=[DataRequired(), NumberRange(min=0.25)])
+    validity_days = IntegerField("Durée de validité (jours)", validators=[Optional(), NumberRange(min=1, max=3650)], default=365)
+    submit = SubmitField("Créer le pack")

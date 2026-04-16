@@ -6,7 +6,7 @@ from flask_login import current_user
 from app import db
 from app.extensions import csrf
 from app.main import bp
-from app.models import CoachSettings, PaymentTransaction, Slot, User, audit_log
+from app.models import CoachSettings, Patient, PatientPack, PaymentTransaction, Slot, User, audit_log
 from app.utils.platform_settings import get_platform_setting
 from app.utils.stripe_connect import _require_stripe, _stripe_field, sync_account_state
 
@@ -81,6 +81,7 @@ def stripe_webhook():
                 slot.stripe_payment_status = "succeeded" if event_type == "payment_intent.succeeded" else "failed"
                 if event_type == "payment_intent.succeeded":
                     slot.paid = True
+                    slot.paid_source = "session"
                     if not slot.paid_at:
                         slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 tx = PaymentTransaction.query.filter_by(stripe_payment_intent_id=pi_id).first()
@@ -124,11 +125,46 @@ def stripe_webhook():
             slot = Slot.query.filter_by(id=tx.slot_id).first()
             if slot:
                 slot.paid = True
+                slot.paid_source = "session"
                 if not slot.paid_at:
                     slot.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 slot.stripe_payment_status = "succeeded"
                 slot.stripe_checkout_session_id = session_id
                 slot.stripe_payment_intent_id = payment_intent
+        else:
+            metadata = _stripe_field(data_obj, "metadata", {}) or {}
+            if metadata.get("payment_type") == "pack":
+                coach_pack_id = metadata.get("coach_pack_id")
+                patient_user_id = metadata.get("patient_user_id")
+                patient = None
+                if patient_user_id:
+                    user = User.query.filter_by(id=int(patient_user_id), role="patient").first()
+                    patient = user.patient_profile if user else None
+                purchase = None
+                if patient and coach_pack_id:
+                    purchase = (
+                        PatientPack.query.filter_by(
+                            patient_id=patient.id,
+                            coach_pack_id=int(coach_pack_id),
+                            stripe_checkout_session_id=session_id,
+                        )
+                        .order_by(PatientPack.id.desc())
+                        .first()
+                    )
+                if purchase:
+                    purchase.purchase_status = "succeeded"
+                    payment_intent = _stripe_field(data_obj, "payment_intent")
+                    if payment_intent:
+                        purchase.stripe_payment_intent_id = payment_intent
+                    purchase.paid_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                    audit_log(
+                        purchase.coach_id,
+                        patient.user_id if patient and patient.user_id else None,
+                        "pack_purchased",
+                        "PatientPack",
+                        purchase.id,
+                        {"patient_name": patient.display_name() if patient else None},
+                    )
             db.session.commit()
 
     return {"received": True}, 200

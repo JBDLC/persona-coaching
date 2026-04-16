@@ -6,7 +6,7 @@ from decimal import Decimal
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import CoachSettings, Patient, Slot, User
+from app.models import CoachSettings, Patient, PatientPack, Slot, User
 
 
 def utcnow():
@@ -62,7 +62,7 @@ def pipeline_revenue_coach(coach_id: int) -> Decimal:
 
 
 def collected_revenue_coach(coach_id: int) -> Decimal:
-    """Fonds réellement encaissés : toutes les séances payées (Stripe ou manuel)."""
+    """Fonds réellement encaissés : paiements séances hors packs + achats de packs."""
     q = (
         db.session.query(Slot, Patient)
         .join(Patient, Slot.patient_id == Patient.id)
@@ -70,6 +70,7 @@ def collected_revenue_coach(coach_id: int) -> Decimal:
             Slot.coach_id == coach_id,
             Slot.status.in_(("booked", "completed")),
             Slot.paid.is_(True),
+            Slot.paid_source != "pack",
         )
     )
     coach = db.session.get(User, coach_id)
@@ -79,6 +80,15 @@ def collected_revenue_coach(coach_id: int) -> Decimal:
     for slot, patient in q:
         rate = patient.effective_hourly_rate(default_rate)
         total += Decimal(str(slot.duration_hours() * rate))
+    packs_total = (
+        db.session.query(func.coalesce(func.sum(PatientPack.amount_paid_eur), 0))
+        .filter(
+            PatientPack.coach_id == coach_id,
+            PatientPack.purchase_status == "succeeded",
+        )
+        .scalar()
+    )
+    total += Decimal(str(packs_total or 0))
     return total.quantize(Decimal("0.01"))
 
 
