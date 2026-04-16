@@ -12,7 +12,7 @@
 <div class="app-shell">
   <nav class="navbar navbar-expand-lg topbar sticky-top">
     <div class="container-fluid app-container">
-      <a class="navbar-brand brand" href="{{ url_for('main.index') }}">
+      <a class="navbar-brand brand" href="{% if current_user.is_authenticated and current_user.is_admin() %}{{ url_for('admin.dashboard') }}{% elif current_user.is_authenticated and current_user.is_coach() %}{{ url_for('coach.dashboard') }}{% elif current_user.is_authenticated and current_user.is_patient() %}{{ url_for('patient.dashboard') }}{% else %}{{ url_for('main.index') }}{% endif %}">
         <span class="brand-logo-wrap">
           <img src="{{ url_for('static', filename='img/logo-coachdesk.png') }}" alt="Logo Persona" class="brand-logo" onerror="this.onerror=null;if(!this.dataset.fallback){this.dataset.fallback='jpg';this.src='{{ url_for('static', filename='img/logo-coachdesk.jpg') }}';}else{this.src='{{ url_for('static', filename='img/logo-coachdesk.svg') }}';}">
         </span>

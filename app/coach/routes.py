@@ -31,6 +31,7 @@ from app.utils.email import (
 )
 from app.utils.pdf import build_invoice_pdf
 from app.utils.crypto import encrypt_text
+from app.utils.forecast import collected_revenue_coach, net_after_charges_monthly, pipeline_revenue_coach, scheduled_revenue_coach
 from app.utils.stripe_connect import create_onboarding_link, get_or_create_connected_account, get_stripe_publishable_key, sync_account_state
 
 PATIENT_ALERT_ACTIONS = (
@@ -61,7 +62,39 @@ def _followed_terms() -> tuple[str, str]:
 @login_required
 @coach_required
 def dashboard():
-    return redirect(url_for("coach.patients_list"))
+    cid = _coach().id
+    forecast = net_after_charges_monthly(cid)
+    settings = _settings()
+    patients = Patient.query.filter_by(coach_id=cid, active=True).count()
+    alerts_q = AuditLog.query.filter(
+        AuditLog.coach_id == cid,
+        AuditLog.action.in_(PATIENT_ALERT_ACTIONS),
+    )
+    if settings.last_alert_seen_at:
+        alerts_q = alerts_q.filter(AuditLog.created_at > settings.last_alert_seen_at)
+    alerts_unread_count = alerts_q.count()
+    funds_collected = collected_revenue_coach(cid)
+    now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    upcoming = (
+        Slot.query.filter(
+            Slot.coach_id == cid,
+            Slot.status.in_(("booked", "completed")),
+            Slot.start_utc >= now_naive,
+        )
+        .order_by(Slot.start_utc.asc())
+        .limit(8)
+        .all()
+    )
+    return render_template(
+        "coach/dashboard.html",
+        forecast=forecast,
+        scheduled_revenue=scheduled_revenue_coach(cid),
+        pipeline_revenue=pipeline_revenue_coach(cid),
+        patients_count=patients,
+        alerts_unread_count=alerts_unread_count,
+        funds_collected=f"{funds_collected:.2f}",
+        upcoming=upcoming,
+    )
 
 
 @bp.route("/settings", methods=["GET", "POST"])
