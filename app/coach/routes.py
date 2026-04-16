@@ -29,7 +29,6 @@ from app.utils.email import (
     send_session_invoice_email,
     send_session_report_email,
 )
-from app.utils.forecast import collected_revenue_coach, net_after_charges_monthly, pipeline_revenue_coach, scheduled_revenue_coach
 from app.utils.pdf import build_invoice_pdf
 from app.utils.crypto import encrypt_text
 from app.utils.stripe_connect import create_onboarding_link, get_or_create_connected_account, get_stripe_publishable_key, sync_account_state
@@ -62,39 +61,7 @@ def _followed_terms() -> tuple[str, str]:
 @login_required
 @coach_required
 def dashboard():
-    cid = _coach().id
-    forecast = net_after_charges_monthly(cid)
-    settings = _settings()
-    patients = Patient.query.filter_by(coach_id=cid, active=True).count()
-    alerts_q = AuditLog.query.filter(
-        AuditLog.coach_id == cid,
-        AuditLog.action.in_(PATIENT_ALERT_ACTIONS),
-    )
-    if settings.last_alert_seen_at:
-        alerts_q = alerts_q.filter(AuditLog.created_at > settings.last_alert_seen_at)
-    alerts_unread_count = alerts_q.count()
-    funds_collected = collected_revenue_coach(cid)
-    now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
-    upcoming = (
-        Slot.query.filter(
-            Slot.coach_id == cid,
-            Slot.status.in_(("booked", "completed")),
-            Slot.start_utc >= now_naive,
-        )
-        .order_by(Slot.start_utc.asc())
-        .limit(8)
-        .all()
-    )
-    return render_template(
-        "coach/dashboard.html",
-        forecast=forecast,
-        scheduled_revenue=scheduled_revenue_coach(cid),
-        pipeline_revenue=pipeline_revenue_coach(cid),
-        patients_count=patients,
-        alerts_unread_count=alerts_unread_count,
-        funds_collected=f"{funds_collected:.2f}",
-        upcoming=upcoming,
-    )
+    return redirect(url_for("coach.patients_list"))
 
 
 @bp.route("/settings", methods=["GET", "POST"])
@@ -162,32 +129,32 @@ def settings():
         audit_log(_coach().id, _coach().id, "settings_updated", "CoachSettings", s.id, {})
         flash("Paramètres enregistrés.", "success")
         return redirect(url_for("coach.settings"))
-    return render_template("coach/settings.html", form=form)
-
-
-@bp.route("/payments")
-@login_required
-@coach_required
-def payments_settings():
-    s = _settings()
-    error = None
+    stripe_error = None
     try:
         if s.stripe_account_id:
             sync_account_state(s)
             db.session.commit()
     except Exception as exc:
         current_app.logger.exception("Stripe sync failed")
-        error = str(exc)
+        stripe_error = str(exc)
     return render_template(
-        "coach/payments.html",
+        "coach/settings.html",
+        form=form,
         stripe_account_id=s.stripe_account_id,
         stripe_state=s.stripe_onboarding_state or "not_connected",
         stripe_charges_enabled=bool(s.stripe_charges_enabled),
         stripe_payouts_enabled=bool(s.stripe_payouts_enabled),
         stripe_last_synced_at=s.stripe_last_synced_at,
-        stripe_error=error,
+        stripe_error=stripe_error,
         publishable_key=get_stripe_publishable_key(),
     )
+
+
+@bp.route("/payments")
+@login_required
+@coach_required
+def payments_settings():
+    return redirect(url_for("coach.settings", _anchor="paiements-stripe"))
 
 
 @bp.route("/payments/connect", methods=["POST"])
@@ -202,7 +169,7 @@ def payments_connect():
     except Exception as exc:
         current_app.logger.exception("Stripe connect failed")
         flash(f"Impossible de lancer la connexion Stripe: {exc}", "danger")
-        return redirect(url_for("coach.payments_settings"))
+        return redirect(url_for("coach.settings", _anchor="paiements-stripe"))
 
 
 @bp.route("/payments/refresh", methods=["POST"])
@@ -217,7 +184,7 @@ def payments_refresh():
     except Exception as exc:
         current_app.logger.exception("Stripe refresh failed")
         flash(f"Échec de synchronisation Stripe: {exc}", "danger")
-    return redirect(url_for("coach.payments_settings"))
+    return redirect(url_for("coach.settings", _anchor="paiements-stripe"))
 
 
 @bp.route("/packs", methods=["GET", "POST"])

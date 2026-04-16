@@ -41,9 +41,9 @@ def _connect_urls():
     refresh_url = current_app.config.get("STRIPE_CONNECT_REFRESH_URL") or get_platform_setting("stripe_connect_refresh_url")
     return_url = current_app.config.get("STRIPE_CONNECT_RETURN_URL") or get_platform_setting("stripe_connect_return_url")
     if not refresh_url:
-        refresh_url = url_for("coach.payments_settings", _external=True)
+        refresh_url = url_for("coach.settings", _anchor="paiements-stripe", _external=True)
     if not return_url:
-        return_url = url_for("coach.payments_settings", _external=True)
+        return_url = url_for("coach.settings", _anchor="paiements-stripe", _external=True)
     return refresh_url, return_url
 
 

@@ -42,7 +42,7 @@ def login():
             if user.is_admin():
                 return redirect(url_for("admin.dashboard"))
             if user.is_coach():
-                return redirect(url_for("coach.dashboard"))
+                return redirect(url_for("coach.patients_list"))
             return redirect(url_for("patient.dashboard"))
         create_security_incident(
             incident_type="auth_failed_login",
@@ -108,7 +108,7 @@ def change_password():
         db.session.commit()
         flash("Mot de passe mis à jour.", "success")
         if current_user.is_coach():
-            return redirect(url_for("coach.dashboard"))
+            return redirect(url_for("coach.patients_list"))
         if current_user.is_admin():
             return redirect(url_for("admin.dashboard"))
         return redirect(url_for("patient.dashboard"))

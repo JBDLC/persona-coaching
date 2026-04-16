@@ -39,6 +39,6 @@ def redirect_if_logged():
         if current_user.is_admin():
             return redirect(url_for("admin.dashboard"))
         if current_user.is_coach():
-            return redirect(url_for("coach.dashboard"))
+            return redirect(url_for("coach.patients_list"))
         return redirect(url_for("patient.dashboard"))
     return None
